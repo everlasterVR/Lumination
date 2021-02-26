@@ -1,7 +1,6 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.Animations;
-using System.Collections.Generic;
 
 namespace Illumination
 {
@@ -10,87 +9,41 @@ namespace Illumination
      * Adapted from prestigitis_aimConstrain.cs by prestigitis (CC BY-NC-SA 4.0)
      */
 
-    public class AimConstrain : MVRScript
+    public class AimConstrain : MonoBehaviour
     {
         protected ConstraintSource cs;
-        protected Atom receivingAtom;
-        protected JSONStorableStringChooser atomJSON;
+        private Atom aimingAtom;
 
-        protected void SyncAtomChoices()
+        public void Init(Atom aimingAtom, Atom targetAtom)
         {
-            List<string> stringList = new List<string>();
-            stringList.Add("None");
-            foreach(string atomUiD in SuperController.singleton.GetAtomUIDs())
-                if(SuperController.singleton.GetAtomByUid(atomUiD).gameObject.GetComponentInChildren<FreeControllerV3>() != null)
-                {
-                    //only add atoms that have an FCV3
-                    stringList.Add(atomUiD);
-                }
-            atomJSON.choices = stringList;
+            this.aimingAtom = aimingAtom;
+            Log.Message($"Adding AimConstraint to {aimingAtom.name}, aiming at {targetAtom.uid}", nameof(AimConstrain));
+            AddAimConstraintTargetingTransform(targetAtom.gameObject.GetComponentInChildren<FreeControllerV3>().transform);
         }
 
-        protected void OnAtomRename(string oldid, string newid)
+        private void OnEnable()
         {
-            SyncAtomChoices();
-            if(atomJSON == null || !(receivingAtom != null))
-                return;
-            atomJSON.valNoCallback = receivingAtom.uid;
+            SetConstraintActive(true);
         }
 
-        protected void SyncAtomFreeControllers(string atomUID)
+        private void OnDisable()
         {
-            if(atomJSON.val == "None")
-            {
-                DisableAimConstraint();
-            }
-            else
-            {
-                AddAimConstraintTargetingTransform(SuperController.singleton.GetAtomByUid(atomJSON.val).gameObject.GetComponentInChildren<FreeControllerV3>().transform);
-                if(!this.isActiveAndEnabled)
-                {
-                    //script is disabled, so disable aimconstraint
-                    containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().constraintActive = false;
-                }
-            }
+            SetConstraintActive(false);
         }
 
-        public override void Init()
+        private void SetConstraintActive(bool value)
         {
             try
             {
-                // put init code in here
-                if((bool) (SuperController.singleton))
-                    SuperController.singleton.onAtomUIDRenameHandlers += new SuperController.OnAtomUIDRename(OnAtomRename);
-
-                atomJSON = new JSONStorableStringChooser(
-                  "atom", SuperController.singleton.GetAtomUIDs(), "None",
-                  "Target Atom", new JSONStorableStringChooser.SetStringCallback(SyncAtomFreeControllers));
-
-                atomJSON.popupOpenCallback = new JSONStorableStringChooser.PopupOpenCallback(SyncAtomChoices);
-
-                RegisterStringChooser(atomJSON);
-
-                CreateScrollablePopup(atomJSON, true);
-
-                SyncAtomChoices(); //add atoms in the scene to the list of choices
-            }
-            catch(Exception e)
-            {
-                Log.Error($"{e}", nameof(AimConstrain));
-            }
-        }
-
-        void OnEnable()
-        {
-            try
-            {
-                if(containingAtom != null)
+                if(aimingAtom != null)
                 {
-                    if(containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>() != null)
+                    FreeControllerV3 fc = aimingAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+                    if(fc != null)
                     {
-                        if(containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>() != null)
+                        if(fc.gameObject.GetComponent<AimConstraint>() != null)
                         {
-                            containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().constraintActive = true;
+                            fc.gameObject.GetComponent<AimConstraint>().constraintActive = value;
+                            Log.Message($"Successfully set constraintActive={value} for {aimingAtom.name}", nameof(AimConstrain));
                         }
                     }
                 }
@@ -101,93 +54,75 @@ namespace Illumination
             }
         }
 
-        void OnDisable()
-        {
-            try
-            {
-                if(containingAtom != null)
-                {
-                    if(containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>() != null)
-                    {
-                        if(containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>() != null)
-                        {
-                            containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().constraintActive = false;
-                        }
-                    }
-                }
-
-            }
-            catch(Exception e)
-            {
-                Log.Error($"{e}", nameof(AimConstrain));
-            }
-        }
-
-        void AddAimConstraintTargetingTransform(Transform targetXForm) //adds an aimconstraint to the containing atom, targeting the targetXForm
+        private void AddAimConstraintTargetingTransform(Transform targetXForm) //adds an aimconstraint to the containing atom, targeting the targetXForm
         {
             //set up constraint source using target transform
             cs.sourceTransform = targetXForm;
             cs.weight = 1;
 
             //set up aimconstraint component on the freecontroller of containing atom
-            if(containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>() == null) //make sure containing atom has a FCV3
+            FreeControllerV3 fc = aimingAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+            if(fc == null) //make sure containing atom has a FCV3
             {
                 Log.Message("AimConstraint script needs to be on an atom with an active FreeControllerV3. Make sure atom is not parented.", nameof(AimConstrain));
                 return;
             }
-            if(containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>() == null)
+            if(fc.gameObject.GetComponent<AimConstraint>() == null)
             {
                 //there is no aimconstraint component yet, so create a new aimconstraint and add a new source
-                AimConstraint ac = containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.AddComponent(typeof(AimConstraint)) as AimConstraint;
+                AimConstraint ac = fc.gameObject.AddComponent(typeof(AimConstraint)) as AimConstraint;
             }
-            if(containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().sourceCount > 1)
+            if(fc.gameObject.GetComponent<AimConstraint>().sourceCount > 1)
             {
                 //aimconstraint exists, but too many constraint sources, remove them all
-                for(int i = 0; i < containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().sourceCount; i++)
+                for(int i = 0; i < fc.gameObject.GetComponent<AimConstraint>().sourceCount; i++)
                 {
-                    containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().RemoveSource(i);
+                    fc.gameObject.GetComponent<AimConstraint>().RemoveSource(i);
                 }
             }
 
-            if(containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().sourceCount == 1)
+            if(fc.gameObject.GetComponent<AimConstraint>().sourceCount == 1)
             {
                 //use the existing constraint source
-                containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().SetSource(0, cs);
+                fc.gameObject.GetComponent<AimConstraint>().SetSource(0, cs);
             }
             else
             {
                 //no constraint sources, so add a new one
-                containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().AddSource(cs);
+                fc.gameObject.GetComponent<AimConstraint>().AddSource(cs);
             }
             //set other aimconstraint parameters
-            containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().aimVector.Set(0, 0, 1);
-            containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().upVector.Set(0, 1, 0);
-            containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().worldUpType = AimConstraint.WorldUpType.None;
-            containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().weight = 1;
-            containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().rotationAxis = Axis.X | Axis.Y; //change this to constrain axis
-            containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().constraintActive = true;
+            fc.gameObject.GetComponent<AimConstraint>().aimVector.Set(0, 0, 1);
+            fc.gameObject.GetComponent<AimConstraint>().upVector.Set(0, 1, 0);
+            fc.gameObject.GetComponent<AimConstraint>().worldUpType = AimConstraint.WorldUpType.None;
+            fc.gameObject.GetComponent<AimConstraint>().weight = 1;
+            fc.gameObject.GetComponent<AimConstraint>().rotationAxis = Axis.X | Axis.Y; //change this to constrain axis
+            fc.gameObject.GetComponent<AimConstraint>().constraintActive = true;
             return;
 
         }
-        void DisableAimConstraint() //removes all the constraint sources
+
+        public void DisableAimConstraint() //removes all the constraint sources
         {
-            if(containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>() == null) //make sure containing atom has a FCV3
+            Log.Message($"Removing AimConstraint from {aimingAtom.name}", nameof(AimConstrain));
+            FreeControllerV3 fc = aimingAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+            if(fc == null) //make sure containing atom has a FCV3
             {
                 Log.Message("AimConstraint script needs to be on an atom with an active FreeControllerV3. Make sure atom is not parented.", nameof(AimConstrain));
                 return;
             }
-            if(containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>() == null)
+            if(fc.gameObject.GetComponent<AimConstraint>() == null)
             {
                 //there is no aimconstraint so do nothing
                 return;
             }
-            if(containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().sourceCount > 0)
+            if(fc.gameObject.GetComponent<AimConstraint>().sourceCount > 0)
             {
                 //remove all constraint sources
-                for(int i = 0; i < containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().sourceCount; i++)
+                for(int i = 0; i < fc.gameObject.GetComponent<AimConstraint>().sourceCount; i++)
                 {
-                    containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().RemoveSource(i);
-                    containingAtom.gameObject.GetComponentInChildren<FreeControllerV3>().gameObject.GetComponent<AimConstraint>().constraintActive = false;
+                    fc.gameObject.GetComponent<AimConstraint>().RemoveSource(i);
+                    fc.gameObject.GetComponent<AimConstraint>().constraintActive = false;
                 }
             }
         }
