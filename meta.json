@@ -1,0 +1,21 @@
+{
+   "licenseType" : "CC BY-NC-SA", 
+   "creatorName" : "everlaster", 
+   "packageName" : "Illumination", 
+   "standardReferenceVersionOption" : "Latest", 
+   "scriptReferenceVersionOption" : "Exact", 
+   "description" : "v<Version>. ",
+   "credits" : "prestigitis for the prestigitis_aimConstrain.cs plugin.", 
+   "instructions" : "", 
+   "promotionalLink" : "", 
+   "programVersion" : "1.20.77.3", 
+   "contentList" : [ 
+      "Custom/Scripts/everlaster/Illumination/Illumination.cslist", 
+      "Custom/Scripts/everlaster/Illumination/src"
+   ], 
+   "dependencies" : { 
+   },
+   "customOptions" : { 
+      "preloadMorphs" : "false"
+   }
+}
