@@ -8,16 +8,12 @@ namespace Illumination
     {
         private const string version = "<Version>";
 
-        // TODO support parented atoms... need to add FreeControllerV3 to atom if parented to subscene?
-        // TODO auto-enable physics for light atoms
-        // TODO multiple aimConstrains
         private AimConstrain aimConstrain;
 
         public override void Init()
         {
             try
             {
-                // TODO possible as a session plugin?
                 if(containingAtom.type != "CoreControl")
                 {
                     Log.Error($"Must be loaded as a Scene Plugin.");
@@ -38,11 +34,6 @@ namespace Illumination
                 }
 
                 TitleUITextField();
-
-                // TODO print what is being pointed at
-
-                // aimConstrain TODO select target from scene by pointing
-                // inject a new Tab to light atom UI? or inject MVRScript to light atom?
             }
             catch(Exception e)
             {

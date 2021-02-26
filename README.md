@@ -1,4 +1,4 @@
-# Illumination
+# Illumination Virt-A-Mate Plugin
 
 ## Contributing
 
