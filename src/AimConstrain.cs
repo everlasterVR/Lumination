@@ -9,19 +9,14 @@ namespace Illumination
      * Adapted from prestigitis_aimConstrain.cs by prestigitis (CC BY-NC-SA 4.0)
      */
 
-    public class AimConstrain : MonoBehaviour
+    public class AimConstrain
     {
         protected ConstraintSource cs;
         private Atom aimingAtom;
 
-        public void Init(Atom aimingAtom)
+        public AimConstrain(Atom aimingAtom)
         {
             this.aimingAtom = aimingAtom;
-        }
-
-        private void OnEnable()
-        {
-            SetConstraintActive(true);
         }
 
         public void SetTarget(FreeControllerV3 target)
@@ -53,7 +48,10 @@ namespace Illumination
             }
 
             //reset source
-            RemoveSources(ac);
+            for(int i = 0; i < ac.sourceCount; i++)
+            {
+                ac.RemoveSource(i);
+            }
             ac.AddSource(cs);
 
             //set other aimconstraint parameters
@@ -66,12 +64,7 @@ namespace Illumination
             return;
         }
 
-        private void OnDisable()
-        {
-            SetConstraintActive(false);
-        }
-
-        private void SetConstraintActive(bool value)
+        public void SetConstraintActive(bool value)
         {
             try
             {
@@ -87,14 +80,6 @@ namespace Illumination
             catch(Exception e)
             {
                 Log.Error($"{e}", nameof(AimConstrain));
-            }
-        }
-
-        private void RemoveSources(AimConstraint ac)
-        {
-            for(int i = 0; i < ac.sourceCount; i++)
-            {
-                ac.RemoveSource(i);
             }
         }
     }

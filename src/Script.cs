@@ -1,14 +1,15 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace Illumination
 {
     internal class Script : MVRScript
     {
         private const string version = "<Version>";
-
-        private AimConstrain aimConstrain;
+        private List<LightControl> lightControls;
 
         public override void Init()
         {
@@ -20,33 +21,8 @@ namespace Illumination
                     return;
                 }
 
-                if(gameObject.GetComponent<AimConstrain>() == null)
-                {
-                    List<Atom> atoms = SuperController.singleton.GetAtoms();
-                    List<Atom> lightAtoms = atoms.Where(atom => atom.type == "InvisibleLight").ToList();
-                    // TODO add to some other gameObject than containingAtom?
-                    aimConstrain = gameObject.AddComponent<AimConstrain>();
-                    // TODO select from list
-                    aimConstrain.Init(lightAtoms.First());
-                }
-
                 TitleUITextField();
-                SelectTargetUIButton();
-            }
-            catch(Exception e)
-            {
-                Log.Error($"{e}");
-            }
-        }
-
-        public void OnEnable()
-        {
-            try
-            {
-                if(aimConstrain != null)
-                {
-                    aimConstrain.enabled = true;
-                }
+                StartCoroutine(InitLightControls());
             }
             catch(Exception e)
             {
@@ -63,15 +39,43 @@ namespace Illumination
             storable.val = $"<b>{nameof(Illumination)}</b>\n<size=28>v{version}</size>";
         }
 
+        private IEnumerator InitLightControls()
+        {
+            lightControls = new List<LightControl>();
+
+            yield return new WaitForEndOfFrame();
+
+            SuperController.singleton.GetAtoms()
+                .Where(atom => atom.type == "InvisibleLight").ToList()
+                .ForEach(atom =>
+                {
+                    LightControl lc = gameObject.AddComponent<LightControl>();
+                    lc.Init(atom);
+                    lightControls.Add(lc);
+                });
+
+            SelectTargetUIButton();
+        }
+
+        public void OnEnable()
+        {
+            try
+            {
+                lightControls?.ForEach(it => it.enabled = true);
+            }
+            catch(Exception e)
+            {
+                Log.Error($"{e}");
+            }
+        }
+
         private void SelectTargetUIButton()
         {
+            //TODO generalize
+            LightControl lc = lightControls.First();
+
             UIDynamicButton selectTargetButton = CreateButton("Select target");
-            selectTargetButton.button.onClick.AddListener(() =>
-            {
-                SuperController.singleton.SelectModeControllers(
-                    new SuperController.SelectControllerCallback(target => aimConstrain.SetTarget(target))
-                );
-            });
+            selectTargetButton.button.onClick.AddListener(lc.OnSelectTarget);
         }
 
         //public void FixedUpdate()
@@ -100,10 +104,7 @@ namespace Illumination
         {
             try
             {
-                if(aimConstrain != null)
-                {
-                    aimConstrain.enabled = false;
-                }
+                lightControls?.ForEach(it => it.enabled = false);
             }
             catch(Exception e)
             {
@@ -115,7 +116,7 @@ namespace Illumination
         {
             try
             {
-                Destroy(gameObject.GetComponent<AimConstrain>());
+                lightControls?.ForEach(it => Destroy(it));
             }
             catch(Exception e)
             {
