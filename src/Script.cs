@@ -33,10 +33,10 @@ namespace Illumination
                 CreateHairSelect();
 
                 UIDynamicButton addSpotLightButton = CreateButton("Add spot light");
-                addSpotLightButton.button.onClick.AddListener(() => StartCoroutine(AddInvisibleLight(LightType.Spot)));
+                addSpotLightButton.button.onClick.AddListener(() => AddInvisibleLight(LightType.Spot));
 
                 UIDynamicButton addPointLightButton = CreateButton("Add point light");
-                addPointLightButton.button.onClick.AddListener(() => StartCoroutine(AddInvisibleLight(LightType.Point)));
+                addPointLightButton.button.onClick.AddListener(() => AddInvisibleLight(LightType.Point));
 
                 selectTargetButton = CreateButton("Select target to point at", true);
                 pointingAtInfo = new JSONStorableString("Pointing at info", "");
@@ -74,28 +74,16 @@ namespace Illumination
             lightUISelectPopup.height = 100;
         }
 
-        private IEnumerator AddInvisibleLight(LightType lightType)
+        private void AddInvisibleLight(LightType lightType)
         {
-            string atomUid = NewAtomUid(lightType);
-            yield return SuperController.singleton.AddAtomByType("InvisibleLight", atomUid);
-            StartCoroutine(InitLightControl(lightType, atomUid));
-        }
-
-        private IEnumerator InitLightControl(LightType lightType, string atomUid)
-        {
-            Atom newLight = null;
-            while(newLight == null)
+            StartCoroutine(Tools.CreateAtomCo("InvisibleLight", $"Illum_{lightType}Light", (atom) =>
             {
-                newLight = SuperController.singleton.GetAtomByUid(atomUid);
-                yield return null;
-            }
-
-
-            LightControl lc = gameObject.AddComponent<LightControl>();
-            lc.Init(newLight, lightType);
-            lightControls.Add(atomUid, lc);
-            lightUISelect.choices = lightControls.Keys.ToList();
-            lightUISelect.val = lightUISelect.choices.First();
+                LightControl lc = gameObject.AddComponent<LightControl>();
+                lc.Init(atom, lightType);
+                lightControls.Add(atom.uid, lc);
+                lightUISelect.choices = lightControls.Keys.ToList();
+                lightUISelect.val = lightUISelect.choices.First();
+            }));
         }
 
         private void RefreshUI(string key)
@@ -166,26 +154,6 @@ namespace Illumination
             {
                 Log.Error($"{e}");
             }
-        }
-
-        private string NewAtomUid(LightType lightType)
-        {
-            string uid = "Illum_";
-            switch(lightType)
-            {
-                case LightType.Spot:
-                    uid += "SpotLight";
-                    break;
-                case LightType.Point:
-                    uid += "PointLight";
-                    break;
-                default:
-                    break;
-            }
-
-            int count = lightControls.Keys.Where(key => key.StartsWith($"{uid}")).Count();
-
-            return $"{uid}#{count + 1}";
         }
 
         //public void FixedUpdate()

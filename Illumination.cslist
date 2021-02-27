@@ -1,4 +1,5 @@
 src\Utils\Log.cs
+src\Utils\Tools.cs
 src\AimConstrain.cs
 src\LightControl.cs
 src\Script.cs

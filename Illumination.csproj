@@ -79,7 +79,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\AimConstrain.cs" />
+    <Compile Include="src\LightControl.cs" />
     <Compile Include="src\Script.cs" />
+    <Compile Include="src\Utils\Tools.cs" />
     <Compile Include="src\Utils\Log.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -87,6 +89,7 @@
     <None Include="Illumination.cslist" />
     <None Include="meta.json" />
     <None Include="README.md" />
+    <None Include="todo.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
