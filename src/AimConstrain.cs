@@ -66,23 +66,6 @@ namespace Illumination
             return;
         }
 
-        public void DisableAimConstraint() //removes all the constraint sources
-        {
-            Log.Message($"Removing AimConstraint from {aimingAtom.name}", nameof(AimConstrain));
-            FreeControllerV3 fc = aimingAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
-            if(fc == null) //make sure containing atom has a FCV3
-            {
-                Log.Message("AimConstraint script needs to be on an atom with an active FreeControllerV3. Make sure atom is not parented.", nameof(AimConstrain));
-                return;
-            }
-            AimConstraint ac = fc.gameObject.GetComponent<AimConstraint>();
-            if(ac != null)
-            {
-                RemoveSources(ac);
-                ac.constraintActive = false;
-            }
-        }
-
         private void OnDisable()
         {
             SetConstraintActive(false);
