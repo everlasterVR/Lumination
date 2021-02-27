@@ -22,7 +22,7 @@ namespace Illumination
 
         public void SetTarget(FreeControllerV3 target)
         {
-            Log.Message($"Adding AimConstraint to {aimingAtom.name}, aiming at {target.name}", nameof(AimConstrain));
+            //Log.Message($"Adding AimConstraint to {aimingAtom.name}, aiming at {target.name}", nameof(AimConstrain));
             this.target = target;
             AddAimConstraintTargetingTransform();
         }
@@ -87,7 +87,7 @@ namespace Illumination
                 if(ac != null)
                 {
                     ac.constraintActive = value;
-                    Log.Message($"Successfully set constraintActive={value} for {aimingAtom.name}", nameof(AimConstrain));
+                    //Log.Message($"Successfully set constraintActive={value} for {aimingAtom.name}", nameof(AimConstrain));
                 }
             }
             catch(Exception e)

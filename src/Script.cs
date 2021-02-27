@@ -65,7 +65,7 @@ namespace Illumination
         {
             lightUISelect = new JSONStorableStringChooser(
                 "Light select",
-                lightControls.Keys.ToList(),
+                new List<string>(),
                 "",
                 "Selected",
                 RefreshUI
@@ -81,8 +81,8 @@ namespace Illumination
                 LightControl lc = gameObject.AddComponent<LightControl>();
                 lc.Init(atom, lightType);
                 lightControls.Add(atom.uid, lc);
-                lightUISelect.choices = lightControls.Keys.ToList();
-                lightUISelect.val = lightUISelect.choices.First();
+                lightUISelect.choices.Add(atom.uid);
+                lightUISelect.val = atom.uid;
             }));
         }
 
@@ -112,7 +112,7 @@ namespace Illumination
                 removeButton.button.onClick.AddListener(() => {
                     lightControls.Remove(key);
                     Destroy(lc);
-                    lightUISelect.choices = lightControls.Keys.ToList();
+                    lightUISelect.choices.Remove(key);
                     lightUISelect.val = lightUISelect.choices.FirstOrDefault() ?? "";
                 });
             }
