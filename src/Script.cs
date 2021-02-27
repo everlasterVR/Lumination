@@ -11,6 +11,9 @@ namespace Illumination
         private const string version = "<Version>";
         private List<LightControl> lightControls;
 
+        UIDynamicButton selectTargetButton;
+        UIDynamicButton stopPointingButton;
+
         public override void Init()
         {
             try
@@ -21,8 +24,18 @@ namespace Illumination
                     return;
                 }
 
+                lightControls = new List<LightControl>();
+
                 TitleUITextField();
-                StartCoroutine(InitLightControls());
+
+                UIDynamicButton addSpotLightButton = CreateButton("Add spot light");
+                addSpotLightButton.button.onClick.AddListener(() => StartCoroutine(AddInvisibleLight(LightType.Spot)));
+
+                UIDynamicButton addPointLightButton = CreateButton("Add point light");
+                addPointLightButton.button.onClick.AddListener(() => StartCoroutine(AddInvisibleLight(LightType.Point)));
+
+                selectTargetButton = CreateButton("Select target to point at", true);
+                stopPointingButton = CreateButton("Stop pointing", true);
             }
             catch(Exception e)
             {
@@ -39,22 +52,32 @@ namespace Illumination
             storable.val = $"<b>{nameof(Illumination)}</b>\n<size=28>v{version}</size>";
         }
 
-        private IEnumerator InitLightControls()
+        private IEnumerator AddInvisibleLight(LightType lightType)
         {
-            lightControls = new List<LightControl>();
+            string atomUid = NewAtomUid(lightType);
+            yield return SuperController.singleton.AddAtomByType("InvisibleLight", atomUid);
+            StartCoroutine(InitLightControl(lightType, atomUid));
+        }
 
-            yield return new WaitForEndOfFrame();
+        private IEnumerator InitLightControl(LightType lightType, string atomUid)
+        {
+            Atom newLight = null;
+            while(newLight == null)
+            {
+                newLight = SuperController.singleton.GetAtomByUid(atomUid);
+                yield return null;
+            }
 
-            SuperController.singleton.GetAtoms()
-                .Where(atom => atom.type == "InvisibleLight").ToList()
-                .ForEach(atom =>
-                {
-                    LightControl lc = gameObject.AddComponent<LightControl>();
-                    lc.Init(atom);
-                    lightControls.Add(lc);
-                });
+            LightControl lc = gameObject.AddComponent<LightControl>();
+            lc.Init(newLight, lightType);
+            lightControls.Add(lc);
 
-            SelectTargetUIButton();
+            // TODO switch active lightControl in UI
+            selectTargetButton.button.onClick.RemoveAllListeners();
+            selectTargetButton.button.onClick.AddListener(lc.OnSelectTarget);
+
+            stopPointingButton.button.onClick.RemoveAllListeners();
+            stopPointingButton.button.onClick.AddListener(lc.OnStopPointing);
         }
 
         public void OnEnable()
@@ -69,13 +92,24 @@ namespace Illumination
             }
         }
 
-        private void SelectTargetUIButton()
+        private string NewAtomUid(LightType lightType)
         {
-            //TODO generalize
-            LightControl lc = lightControls.First();
+            string uid = "Illum_";
+            switch(lightType)
+            {
+                case LightType.Spot:
+                    uid += "SpotLight";
+                    break;
+                case LightType.Point:
+                    uid += "PointLight";
+                    break;
+                default:
+                    break;
+            }
 
-            UIDynamicButton selectTargetButton = CreateButton("Select target");
-            selectTargetButton.button.onClick.AddListener(lc.OnSelectTarget);
+            int count = lightControls.Where(lc => lc.atom.uid.StartsWith($"{uid}")).Count();
+
+            return $"{uid}#{count + 1}";
         }
 
         //public void FixedUpdate()

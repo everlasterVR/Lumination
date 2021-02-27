@@ -9,12 +9,12 @@ namespace Illumination
      * Adapted from prestigitis_aimConstrain.cs by prestigitis (CC BY-NC-SA 4.0)
      */
 
-    public class AimConstrain
+    public class AimConstrain : MonoBehaviour
     {
         protected ConstraintSource cs;
         private Atom aimingAtom;
 
-        public AimConstrain(Atom aimingAtom)
+        public void Init(Atom aimingAtom)
         {
             this.aimingAtom = aimingAtom;
         }
@@ -64,6 +64,12 @@ namespace Illumination
             return;
         }
 
+        public AimConstraint GetAimConstraint()
+        {
+            FreeControllerV3 fc = aimingAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+            return fc.gameObject.GetComponent<AimConstraint>();
+        }
+
         public void SetConstraintActive(bool value)
         {
             try
@@ -81,6 +87,12 @@ namespace Illumination
             {
                 Log.Error($"{e}", nameof(AimConstrain));
             }
+        }
+
+        private void OnDestroy()
+        {
+            FreeControllerV3 fc = aimingAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+            Destroy(fc?.gameObject.GetComponent<AimConstraint>());
         }
     }
 }
