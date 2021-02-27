@@ -14,16 +14,20 @@ namespace Illumination
         protected ConstraintSource cs;
         private Atom aimingAtom;
 
-        public void Init(Atom aimingAtom, Atom targetAtom)
+        public void Init(Atom aimingAtom)
         {
             this.aimingAtom = aimingAtom;
-            Log.Message($"Adding AimConstraint to {aimingAtom.name}, aiming at {targetAtom.uid}", nameof(AimConstrain));
-            AddAimConstraintTargetingTransform(targetAtom.gameObject.GetComponentInChildren<FreeControllerV3>().transform);
         }
 
         private void OnEnable()
         {
             SetConstraintActive(true);
+        }
+
+        public void SetTarget(FreeControllerV3 target)
+        {
+            Log.Message($"Adding AimConstraint to {aimingAtom.name}, aiming at {target.name}", nameof(AimConstrain));
+            AddAimConstraintTargetingTransform(target.transform);
         }
 
         //adds an aimconstraint to the containing atom, targeting the targetXForm
@@ -103,7 +107,6 @@ namespace Illumination
             }
         }
 
-        //remove all constraint sources
         private void RemoveSources(AimConstraint ac)
         {
             for(int i = 0; i < ac.sourceCount; i++)

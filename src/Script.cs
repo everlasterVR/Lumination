@@ -27,13 +27,26 @@ namespace Illumination
                     // TODO add to some other gameObject than containingAtom?
                     aimConstrain = gameObject.AddComponent<AimConstrain>();
                     // TODO select from list
-                    aimConstrain.Init(
-                        lightAtoms.First(),
-                        atoms.Where(atom => atom.type == "Person").First()
-                    );
+                    aimConstrain.Init(lightAtoms.First());
                 }
 
                 TitleUITextField();
+                SelectTargetUIButton();
+            }
+            catch(Exception e)
+            {
+                Log.Error($"{e}");
+            }
+        }
+
+        public void OnEnable()
+        {
+            try
+            {
+                if(aimConstrain != null)
+                {
+                    aimConstrain.enabled = true;
+                }
             }
             catch(Exception e)
             {
@@ -50,19 +63,15 @@ namespace Illumination
             storable.val = $"<b>{nameof(Illumination)}</b>\n<size=28>v{version}</size>";
         }
 
-        public void OnEnable()
+        private void SelectTargetUIButton()
         {
-            try
+            UIDynamicButton selectTargetButton = CreateButton("Select target");
+            selectTargetButton.button.onClick.AddListener(() =>
             {
-                if(aimConstrain != null)
-                {
-                    aimConstrain.enabled = true;
-                }
-            }
-            catch(Exception e)
-            {
-                Log.Error($"{e}");
-            }
+                SuperController.singleton.SelectModeControllers(
+                    new SuperController.SelectControllerCallback(target => aimConstrain.SetTarget(target))
+                );
+            });
         }
 
         //public void FixedUpdate()
