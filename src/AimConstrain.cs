@@ -11,8 +11,9 @@ namespace Illumination
 
     public class AimConstrain : MonoBehaviour
     {
-        protected ConstraintSource cs;
+        private ConstraintSource cs;
         private Atom aimingAtom;
+        private FreeControllerV3 target;
 
         public void Init(Atom aimingAtom)
         {
@@ -22,14 +23,15 @@ namespace Illumination
         public void SetTarget(FreeControllerV3 target)
         {
             Log.Message($"Adding AimConstraint to {aimingAtom.name}, aiming at {target.name}", nameof(AimConstrain));
-            AddAimConstraintTargetingTransform(target.transform);
+            this.target = target;
+            AddAimConstraintTargetingTransform();
         }
 
         //adds an aimconstraint to the containing atom, targeting the targetXForm
-        private void AddAimConstraintTargetingTransform(Transform targetXForm)
+        private void AddAimConstraintTargetingTransform()
         {
             //set up constraint source using target transform
-            cs.sourceTransform = targetXForm;
+            cs.sourceTransform = target.transform;
             cs.weight = 1;
 
             //set up aimconstraint component on the freecontroller of containing atom
@@ -68,6 +70,11 @@ namespace Illumination
         {
             FreeControllerV3 fc = aimingAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
             return fc.gameObject.GetComponent<AimConstraint>();
+        }
+
+        public string GetTargetName()
+        {
+            return target?.name;
         }
 
         public void SetConstraintActive(bool value)

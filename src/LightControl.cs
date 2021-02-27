@@ -35,6 +35,12 @@ namespace Illumination
         public void OnStopPointing()
         {
             Destroy(aimConstrain);
+            aimConstrain = null;
+        }
+
+        public string GetAimConstrainTargetName()
+        {
+            return aimConstrain?.GetTargetName();
         }
 
         private void OnEnable()

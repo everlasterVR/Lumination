@@ -9,9 +9,10 @@ namespace Illumination
     internal class Script : MVRScript
     {
         private const string version = "<Version>";
-        private List<LightControl> lightControls;
+        private Dictionary<string, LightControl> lightControls;
 
-        JSONStorableString info;
+        JSONStorableStringChooser lightUISelect;
+        JSONStorableString pointingAtInfo;
         UIDynamicButton selectTargetButton;
         UIDynamicButton stopPointingButton;
         UIDynamicButton removeButton;
@@ -26,9 +27,10 @@ namespace Illumination
                     return;
                 }
 
-                lightControls = new List<LightControl>();
+                lightControls = new Dictionary<string, LightControl>();
 
                 TitleUITextField();
+                CreateHairSelect();
 
                 UIDynamicButton addSpotLightButton = CreateButton("Add spot light");
                 addSpotLightButton.button.onClick.AddListener(() => StartCoroutine(AddInvisibleLight(LightType.Spot)));
@@ -36,11 +38,11 @@ namespace Illumination
                 UIDynamicButton addPointLightButton = CreateButton("Add point light");
                 addPointLightButton.button.onClick.AddListener(() => StartCoroutine(AddInvisibleLight(LightType.Point)));
 
-                info = new JSONStorableString("Info", "");
-                UIDynamicTextField infoField = CreateTextField(info, true);
-                infoField.height = 100;
-
                 selectTargetButton = CreateButton("Select target to point at", true);
+                pointingAtInfo = new JSONStorableString("Pointing at info", "");
+                UIDynamicTextField pointingAtInfoField = CreateTextField(pointingAtInfo, true);
+                pointingAtInfoField.height = 100;
+
                 stopPointingButton = CreateButton("Stop pointing", true);
                 removeButton = CreateButton("Remove", true);
             }
@@ -59,6 +61,19 @@ namespace Illumination
             storable.val = $"<b>{nameof(Illumination)}</b>\n<size=28>v{version}</size>";
         }
 
+        private void CreateHairSelect()
+        {
+            lightUISelect = new JSONStorableStringChooser(
+                "Light select",
+                lightControls.Keys.ToList(),
+                "",
+                "Selected",
+                RefreshUI
+            );
+            UIDynamicPopup lightUISelectPopup = CreatePopup(lightUISelect, true);
+            lightUISelectPopup.height = 100;
+        }
+
         private IEnumerator AddInvisibleLight(LightType lightType)
         {
             string atomUid = NewAtomUid(lightType);
@@ -75,32 +90,77 @@ namespace Illumination
                 yield return null;
             }
 
-            info.val = atomUid;
 
             LightControl lc = gameObject.AddComponent<LightControl>();
             lc.Init(newLight, lightType);
-            lightControls.Add(lc);
+            lightControls.Add(atomUid, lc);
+            lightUISelect.choices = lightControls.Keys.ToList();
+            lightUISelect.val = lightUISelect.choices.First();
+        }
 
-            // TODO switch active lightControl in UI
+        private void RefreshUI(string key)
+        {
             selectTargetButton.button.onClick.RemoveAllListeners();
-            selectTargetButton.button.onClick.AddListener(lc.OnSelectTarget);
-
             stopPointingButton.button.onClick.RemoveAllListeners();
-            stopPointingButton.button.onClick.AddListener(lc.OnStopPointing);
-
             removeButton.button.onClick.RemoveAllListeners();
-            removeButton.button.onClick.AddListener(() => {
-                lightControls.Remove(lc);
-                Destroy(lc);
-                // TODO autoselect first and update UI
-            });
+
+            if(lightControls.ContainsKey(key))
+            {
+                LightControl lc = lightControls[key];
+                UpdateInfo(lc.GetAimConstrainTargetName());
+
+                selectTargetButton.button.onClick.AddListener(() =>
+                {
+                    lc.OnSelectTarget();
+                    StartCoroutine(AwaitUpdateInfo(lc));
+                });
+
+                stopPointingButton.button.onClick.AddListener(() =>
+                {
+                    lc.OnStopPointing();
+                    UpdateInfo(null);
+                });
+
+                removeButton.button.onClick.AddListener(() => {
+                    lightControls.Remove(key);
+                    Destroy(lc);
+                    lightUISelect.choices = lightControls.Keys.ToList();
+                    lightUISelect.val = lightUISelect.choices.FirstOrDefault() ?? "";
+                });
+            }
+            else
+            {
+                UpdateInfo(null);
+            }
+        }
+
+        private void UpdateInfo(string targetName)
+        {
+            if(targetName == null)
+            {
+                pointingAtInfo.val = $"";
+                return;
+            }
+
+            pointingAtInfo.val = $"Pointing at: {targetName}";
+        }
+
+        private IEnumerator AwaitUpdateInfo(LightControl lc)
+        {
+            while(lc.GetAimConstrainTargetName() == null)
+            {
+                pointingAtInfo.val = $"";
+                yield return null;
+            }
+
+            pointingAtInfo.val = $"Pointing at: {lc.GetAimConstrainTargetName()}";
         }
 
         public void OnEnable()
         {
             try
             {
-                lightControls?.ForEach(it => it.enabled = true);
+                lightControls?.Values.ToList().ForEach(it => it.enabled = true);
             }
             catch(Exception e)
             {
@@ -123,7 +183,7 @@ namespace Illumination
                     break;
             }
 
-            int count = lightControls.Where(lc => lc.atom.uid.StartsWith($"{uid}")).Count();
+            int count = lightControls.Keys.Where(key => key.StartsWith($"{uid}")).Count();
 
             return $"{uid}#{count + 1}";
         }
@@ -154,7 +214,7 @@ namespace Illumination
         {
             try
             {
-                lightControls?.ForEach(it => it.enabled = false);
+                lightControls?.Values.ToList().ForEach(it => it.enabled = false);
             }
             catch(Exception e)
             {
@@ -166,7 +226,7 @@ namespace Illumination
         {
             try
             {
-                lightControls?.ForEach(it => Destroy(it));
+                lightControls?.Values.ToList().ForEach(it => Destroy(it));
             }
             catch(Exception e)
             {
