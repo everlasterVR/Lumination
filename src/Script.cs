@@ -11,8 +11,10 @@ namespace Illumination
         private const string version = "<Version>";
         private List<LightControl> lightControls;
 
+        JSONStorableString info;
         UIDynamicButton selectTargetButton;
         UIDynamicButton stopPointingButton;
+        UIDynamicButton removeButton;
 
         public override void Init()
         {
@@ -34,8 +36,13 @@ namespace Illumination
                 UIDynamicButton addPointLightButton = CreateButton("Add point light");
                 addPointLightButton.button.onClick.AddListener(() => StartCoroutine(AddInvisibleLight(LightType.Point)));
 
+                info = new JSONStorableString("Info", "");
+                UIDynamicTextField infoField = CreateTextField(info, true);
+                infoField.height = 100;
+
                 selectTargetButton = CreateButton("Select target to point at", true);
                 stopPointingButton = CreateButton("Stop pointing", true);
+                removeButton = CreateButton("Remove", true);
             }
             catch(Exception e)
             {
@@ -68,6 +75,8 @@ namespace Illumination
                 yield return null;
             }
 
+            info.val = atomUid;
+
             LightControl lc = gameObject.AddComponent<LightControl>();
             lc.Init(newLight, lightType);
             lightControls.Add(lc);
@@ -78,6 +87,13 @@ namespace Illumination
 
             stopPointingButton.button.onClick.RemoveAllListeners();
             stopPointingButton.button.onClick.AddListener(lc.OnStopPointing);
+
+            removeButton.button.onClick.RemoveAllListeners();
+            removeButton.button.onClick.AddListener(() => {
+                lightControls.Remove(lc);
+                Destroy(lc);
+                // TODO autoselect first and update UI
+            });
         }
 
         public void OnEnable()
