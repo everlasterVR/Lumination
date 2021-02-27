@@ -11,6 +11,9 @@ namespace Illumination
         private const string version = "<Version>";
         private Dictionary<string, LightControl> lightControls;
 
+        JSONStorableBool disableOtherLights;
+        private List<Atom> disabledLights;
+
         JSONStorableStringChooser lightUISelect;
         JSONStorableString pointingAtInfo;
         UIDynamicButton selectTargetButton;
@@ -31,6 +34,8 @@ namespace Illumination
 
                 TitleUITextField();
                 CreateHairSelect();
+
+                DisableOtherLightsUIToggle();
 
                 UIDynamicButton addSpotLightButton = CreateButton("Add spot light");
                 addSpotLightButton.button.onClick.AddListener(() => AddInvisibleLight(LightType.Spot));
@@ -72,6 +77,22 @@ namespace Illumination
             );
             UIDynamicPopup lightUISelectPopup = CreatePopup(lightUISelect, true);
             lightUISelectPopup.height = 100;
+        }
+
+        private void DisableOtherLightsUIToggle()
+        {
+            disableOtherLights = new JSONStorableBool("Disable other point and spot lights", false);
+            UIDynamicToggle disableOtherLightsToggle = CreateToggle(disableOtherLights);
+            disableOtherLights.toggle.onValueChanged.AddListener(val => {
+                if(val)
+                {
+                    DisableOtherPointAndSpotLights();
+                }
+                else
+                {
+                    EnableDisabledLights();
+                }
+            });
         }
 
         private void AddInvisibleLight(LightType lightType)
@@ -149,11 +170,44 @@ namespace Illumination
             try
             {
                 lightControls?.Values.ToList().ForEach(it => it.enabled = true);
+                DisableOtherPointAndSpotLights();
             }
             catch(Exception e)
             {
                 Log.Error($"{e}");
             }
+        }
+
+        private void DisableOtherPointAndSpotLights()
+        {
+            if(disableOtherLights == null || !disableOtherLights.val)
+            {
+                return;
+            }
+
+            disabledLights = new List<Atom>();
+            SuperController.singleton.GetAtoms().ForEach(atom =>
+            {
+                if(atom.enabled && atom.type == "InvisibleLight" && !lightControls.ContainsKey(atom.uid))
+                {
+                    Light light = atom.GetComponentInChildren<Light>();
+                    if(light.type == LightType.Point || light.type == LightType.Spot)
+                    {
+                        atom.ToggleOn();
+                        disabledLights.Add(atom);
+                    }
+                }
+            });
+        }
+
+        private void EnableDisabledLights()
+        {
+            disabledLights?.ForEach(atom => {
+                if(!atom.on)
+                {
+                    atom.ToggleOn();
+                }
+            });
         }
 
         //public void FixedUpdate()
@@ -183,6 +237,7 @@ namespace Illumination
             try
             {
                 lightControls?.Values.ToList().ForEach(it => it.enabled = false);
+                EnableDisabledLights();
             }
             catch(Exception e)
             {
