@@ -13,7 +13,7 @@ namespace Illumination
     {
         private ConstraintSource cs;
         private FreeControllerV3 sourceCtrl;
-        private FreeControllerV3 targetCtrl;
+        public FreeControllerV3 targetCtrl;
 
         public void Init(Atom parentAtom)
         {
@@ -62,11 +62,6 @@ namespace Illumination
         {
             FreeControllerV3 fc = sourceCtrl.gameObject.GetComponentInChildren<FreeControllerV3>();
             return fc.gameObject.GetComponent<AimConstraint>();
-        }
-
-        public string GetTargetName()
-        {
-            return targetCtrl?.name;
         }
 
         public void SetConstraintActive(bool value)

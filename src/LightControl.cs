@@ -42,7 +42,7 @@ namespace Illumination
 
         public string GetAimConstrainTargetName()
         {
-            return aimConstrain?.GetTargetName();
+            return aimConstrain?.targetCtrl?.name;
         }
 
         private void OnEnable()
