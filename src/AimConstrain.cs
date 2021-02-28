@@ -15,16 +15,17 @@ namespace Illumination
         private FreeControllerV3 sourceCtrl;
         public FreeControllerV3 targetCtrl;
 
-        public void Init(Atom parentAtom)
+        public void Init(FreeControllerV3 sourceCtrl, FreeControllerV3 targetCtrl)
         {
-            sourceCtrl = parentAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
-        }
-
-        public void AddAimConstraintTargetingTransform()
-        {
+            this.sourceCtrl = sourceCtrl;
+            this.targetCtrl = targetCtrl;
             cs.sourceTransform = targetCtrl.transform;
             cs.weight = 1;
+            AddAimConstraintTargetingTransform();
+        }
 
+        private void AddAimConstraintTargetingTransform()
+        {
             if(sourceCtrl == null)
             {
                 Log.Message("AimConstrain Component needs to be on an Atom with an active FreeControllerV3. Make sure Atom is not parented.", nameof(AimConstrain));

@@ -7,20 +7,20 @@ namespace Illumination
     internal class LightControl : MonoBehaviour
     {
         public Atom lightAtom;
+        public FreeControllerV3 control;
         private AimConstrain aimConstrain;
 
         public void Init(Atom lightAtom, string lightType)
         {
             this.lightAtom = lightAtom;
+            control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
 
             // init defaults
             JSONStorable light = lightAtom.GetStorableByID("Light");
             light.SetStringChooserParamValue("type", lightType);
 
-            FreeControllerV3 fc = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
-            fc.physicsEnabled = true;
-            fc.onColor = new Color(1f, 1f, 1f, 0.5f);
-            fc.highlighted = false;
+            control.onColor = new Color(1f, 1f, 1f, 0.5f);
+            control.highlighted = false;
         }
 
         public void InitFromSave(Atom lightAtom, FreeControllerV3 target)
@@ -28,16 +28,18 @@ namespace Illumination
             try
             {
                 this.lightAtom = lightAtom;
+                control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+                control.onColor = new Color(1f, 1f, 1f, 0.5f);
+                control.highlighted = false;
 
                 if(target != null)
                 {
+                    control.physicsEnabled = true;
                     if(aimConstrain == null)
                     {
                         aimConstrain = lightAtom.gameObject.AddComponent<AimConstrain>();
-                        aimConstrain.Init(lightAtom);
+                        aimConstrain.Init(control, target);
                     }
-                    aimConstrain.targetCtrl = target;
-                    aimConstrain.AddAimConstraintTargetingTransform();
                 }
             }
             catch(Exception e)
@@ -51,16 +53,12 @@ namespace Illumination
             if(aimConstrain == null)
             {
                 aimConstrain = lightAtom.gameObject.AddComponent<AimConstrain>();
-                aimConstrain.Init(lightAtom);
             }
             aimConstrain.targetCtrl = null;
+            control.physicsEnabled = true;
 
             SuperController.singleton.SelectModeControllers(
-                new SuperController.SelectControllerCallback(target =>
-                {
-                    aimConstrain.targetCtrl = target;
-                    aimConstrain.AddAimConstraintTargetingTransform();
-                })
+                new SuperController.SelectControllerCallback(target => aimConstrain.Init(control, target))
             );
         }
 

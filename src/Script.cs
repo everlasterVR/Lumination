@@ -194,7 +194,7 @@ namespace Illumination
                 return false;
             }
 
-            if(!atom.enabled || atom.type != "InvisibleLight" || atom.uid.StartsWith(atomUidPrefix) || lightControls.ContainsKey(atom.uid))
+            if(!atom.on || atom.type != "InvisibleLight" || atom.uid.StartsWith(atomUidPrefix) || lightControls.ContainsKey(atom.uid))
             {
                 return false;
             }
@@ -303,6 +303,7 @@ namespace Illumination
             }
 
             disableOtherLights.val = json["disableOtherLights"].AsBool;
+            DisableOtherPointAndSpotLights();
             lightUISelect.choices = lightControls.Keys.ToList();
             lightUISelect.val = json["selected"].Value;
         }
