@@ -20,7 +20,7 @@ namespace Illumination
             light.SetStringChooserParamValue("type", lightType);
 
             control.onColor = new Color(1f, 1f, 1f, 0.5f);
-            control.highlighted = false;
+            control.highlighted = false; // trigger color change
         }
 
         public void InitFromSave(Atom lightAtom, FreeControllerV3 target)
@@ -62,15 +62,21 @@ namespace Illumination
             );
         }
 
-        public void OnStopPointing()
+        public void OnStopAiming()
         {
             Destroy(aimConstrain);
             aimConstrain = null;
         }
 
-        public string GetAimConstrainTargetName()
+        public string GetAimConstrainTargetString()
         {
-            return aimConstrain?.targetCtrl?.name;
+            string uid = aimConstrain?.targetCtrl?.containingAtom.uid;
+            string name = aimConstrain?.targetCtrl?.name;
+            if(uid != null && name != null)
+            {
+                return $"{uid}:{name}";
+            }
+            return null;
         }
 
         public JSONClass Serialize()

@@ -17,10 +17,8 @@ namespace Illumination
         private List<Atom> disabledLights = new List<Atom>();
 
         private JSONStorableStringChooser lightUISelect;
-        private JSONStorableString pointingAtInfo;
         private UIDynamicButton selectTargetButton;
-        private UIDynamicButton stopPointingButton;
-        private UIDynamicButton removeButton;
+        private UIDynamicButton stopAimingButton;
 
         public override void Init()
         {
@@ -43,14 +41,10 @@ namespace Illumination
                 UIDynamicButton addPointLightButton = CreateButton("Add point light");
                 addPointLightButton.button.onClick.AddListener(() => AddInvisibleLight("Point"));
 
-                selectTargetButton = CreateButton("Select target to point at", true);
-                pointingAtInfo = new JSONStorableString("Pointing at info", "");
-                UIDynamicTextField pointingAtInfoField = CreateTextField(pointingAtInfo, true);
-                pointingAtInfoField.height = 100;
+                selectTargetButton = CreateButton("Select target to aim at", true);
+                stopAimingButton = CreateButton("", true);
 
-                stopPointingButton = CreateButton("Stop pointing", true);
-                removeButton = CreateButton("Remove", true);
-
+                RefreshUI(lightUISelect.val);
                 AddSuperControllerOnAtomActions();
             }
             catch(Exception e)
@@ -113,60 +107,49 @@ namespace Illumination
         private void RefreshUI(string key)
         {
             selectTargetButton.button.onClick.RemoveAllListeners();
-            stopPointingButton.button.onClick.RemoveAllListeners();
-            removeButton.button.onClick.RemoveAllListeners();
+            stopAimingButton.button.onClick.RemoveAllListeners();
 
             if(lightControls.ContainsKey(key))
             {
                 LightControl lc = lightControls[key];
-                UpdateInfo(lc.GetAimConstrainTargetName());
+                StartCoroutine(UpdateStopAimingButtonCo(lc));
+                selectTargetButton.button.interactable = true;
 
                 selectTargetButton.button.onClick.AddListener(() =>
                 {
                     lc.OnSelectTarget();
-                    StartCoroutine(AwaitUpdateInfo(lc));
+                    StartCoroutine(UpdateStopAimingButtonCo(lc));
                 });
 
-                stopPointingButton.button.onClick.AddListener(() =>
+                stopAimingButton.button.onClick.AddListener(() =>
                 {
-                    lc.OnStopPointing();
-                    UpdateInfo(null);
-                });
-
-                removeButton.button.onClick.AddListener(() =>
-                {
-                    lightControls.Remove(key);
-                    Destroy(lc);
-                    lightUISelect.choices = lightControls.Keys.ToList();
-                    lightUISelect.val = lightUISelect.choices.FirstOrDefault() ?? "";
+                    lc.OnStopAiming();
+                    DisableStopAimingButton();
                 });
             }
             else
             {
-                UpdateInfo(null);
+                selectTargetButton.button.interactable = false;
+                DisableStopAimingButton();
             }
         }
 
-        private void UpdateInfo(string targetName)
+        private IEnumerator UpdateStopAimingButtonCo(LightControl lc = null)
         {
-            if(targetName == null)
+            while(lc?.GetAimConstrainTargetString() == null)
             {
-                pointingAtInfo.val = $"";
-                return;
-            }
-
-            pointingAtInfo.val = $"Pointing at: {targetName}";
-        }
-
-        private IEnumerator AwaitUpdateInfo(LightControl lc)
-        {
-            while(lc.GetAimConstrainTargetName() == null)
-            {
-                pointingAtInfo.val = $"";
+                DisableStopAimingButton();
                 yield return null;
             }
 
-            pointingAtInfo.val = $"Pointing at: {lc.GetAimConstrainTargetName()}";
+            stopAimingButton.label = $"Stop aiming at {lc.GetAimConstrainTargetString()}";
+            stopAimingButton.button.interactable = true;
+        }
+
+        private void DisableStopAimingButton()
+        {
+            stopAimingButton.button.interactable = false;
+            stopAimingButton.label = "Stop aiming";
         }
 
         public void OnEnable()
