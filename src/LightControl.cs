@@ -4,18 +4,18 @@ namespace Illumination
 {
     internal class LightControl : MonoBehaviour
     {
-        public Atom atom;
+        public Atom lightAtom;
         private AimConstrain aimConstrain;
 
-        public void Init(Atom atom, LightType lightType)
+        public void Init(Atom lightAtom, LightType lightType)
         {
-            this.atom = atom;
+            this.lightAtom = lightAtom;
 
             // init defaults
-            Light light = atom.GetComponentInChildren<Light>();
+            Light light = lightAtom.GetComponentInChildren<Light>();
             light.type = lightType;
 
-            FreeControllerV3 fc = atom.gameObject.GetComponentInChildren<FreeControllerV3>();
+            FreeControllerV3 fc = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
             fc.physicsEnabled = true;
             fc.onColor = new Color(1f, 1f, 1f, 0.5f);
             fc.highlighted = false;
@@ -25,8 +25,8 @@ namespace Illumination
         {
             if(aimConstrain == null)
             {
-                aimConstrain = gameObject.AddComponent<AimConstrain>();
-                aimConstrain.Init(atom);
+                aimConstrain = lightAtom.gameObject.AddComponent<AimConstrain>();
+                aimConstrain.Init(lightAtom);
             }
 
             SuperController.singleton.SelectModeControllers(
@@ -64,7 +64,7 @@ namespace Illumination
         private void OnDestroy()
         {
             Destroy(aimConstrain);
-            SuperController.singleton.RemoveAtom(atom);
+            SuperController.singleton.RemoveAtom(lightAtom);
         }
     }
 }

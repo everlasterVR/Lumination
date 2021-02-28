@@ -12,51 +12,43 @@ namespace Illumination
     public class AimConstrain : MonoBehaviour
     {
         private ConstraintSource cs;
-        private Atom aimingAtom;
-        private FreeControllerV3 target;
+        private FreeControllerV3 sourceCtrl;
+        private FreeControllerV3 targetCtrl;
 
-        public void Init(Atom aimingAtom)
+        public void Init(Atom parentAtom)
         {
-            this.aimingAtom = aimingAtom;
+            sourceCtrl = parentAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
         }
 
         public void SetTarget(FreeControllerV3 target)
         {
-            //Log.Message($"Adding AimConstraint to {aimingAtom.name}, aiming at {target.name}", nameof(AimConstrain));
-            this.target = target;
+            targetCtrl = target;
             AddAimConstraintTargetingTransform();
         }
 
-        //adds an aimconstraint to the containing atom, targeting the targetXForm
         private void AddAimConstraintTargetingTransform()
         {
-            //set up constraint source using target transform
-            cs.sourceTransform = target.transform;
+            cs.sourceTransform = targetCtrl.transform;
             cs.weight = 1;
 
-            //set up aimconstraint component on the freecontroller of containing atom
-            FreeControllerV3 fc = aimingAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
-            if(fc == null) //make sure containing atom has a FCV3
+            if(sourceCtrl == null)
             {
-                Log.Message("AimConstraint script needs to be on an atom with an active FreeControllerV3. Make sure atom is not parented.", nameof(AimConstrain));
+                Log.Message("AimConstrain Component needs to be on an Atom with an active FreeControllerV3. Make sure Atom is not parented.", nameof(AimConstrain));
                 return;
             }
 
-            AimConstraint ac = fc.gameObject.GetComponent<AimConstraint>();
+            AimConstraint ac = sourceCtrl.gameObject.GetComponent<AimConstraint>();
             if(ac == null)
             {
-                //there is no aimconstraint component yet, so create a new aimconstraint
-                ac = fc.gameObject.AddComponent(typeof(AimConstraint)) as AimConstraint;
+                ac = sourceCtrl.gameObject.AddComponent(typeof(AimConstraint)) as AimConstraint;
             }
 
-            //reset source
             for(int i = 0; i < ac.sourceCount; i++)
             {
                 ac.RemoveSource(i);
             }
             ac.AddSource(cs);
 
-            //set other aimconstraint parameters
             ac.aimVector.Set(0, 0, 1);
             ac.upVector.Set(0, 1, 0);
             ac.worldUpType = AimConstraint.WorldUpType.None;
@@ -68,26 +60,24 @@ namespace Illumination
 
         public AimConstraint GetAimConstraint()
         {
-            FreeControllerV3 fc = aimingAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+            FreeControllerV3 fc = sourceCtrl.gameObject.GetComponentInChildren<FreeControllerV3>();
             return fc.gameObject.GetComponent<AimConstraint>();
         }
 
         public string GetTargetName()
         {
-            return target?.name;
+            return targetCtrl?.name;
         }
 
         public void SetConstraintActive(bool value)
         {
             try
             {
-                FreeControllerV3 fc = aimingAtom?.gameObject.GetComponentInChildren<FreeControllerV3>();
-                AimConstraint ac = fc?.gameObject.GetComponent<AimConstraint>();
+                AimConstraint ac = sourceCtrl?.gameObject.GetComponent<AimConstraint>();
 
                 if(ac != null)
                 {
                     ac.constraintActive = value;
-                    //Log.Message($"Successfully set constraintActive={value} for {aimingAtom.name}", nameof(AimConstrain));
                 }
             }
             catch(Exception e)
@@ -98,8 +88,7 @@ namespace Illumination
 
         private void OnDestroy()
         {
-            FreeControllerV3 fc = aimingAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
-            Destroy(fc?.gameObject.GetComponent<AimConstraint>());
+            Destroy(sourceCtrl?.gameObject.GetComponent<AimConstraint>());
         }
     }
 }
