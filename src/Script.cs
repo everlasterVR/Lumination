@@ -1,3 +1,4 @@
+using SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -272,6 +273,74 @@ namespace Illumination
                 {
                     lightUISelect.val = touid;
                 }
+            }
+        }
+
+        public override JSONClass GetJSON(bool includePhysical = true, bool includeAppearance = true, bool forceStore = false)
+        {
+            JSONClass json = base.GetJSON(includePhysical, includeAppearance, forceStore);
+            json["lightControls"] = new JSONArray();
+            lightControls.Values.ToList().ForEach(lc => json["lightControls"].Add(lc.Serialize()));
+            json["selected"] = lightUISelect.val;
+            json["disableOtherLights"].AsBool = disableOtherLights.val;
+            needsStore = true;
+            return json;
+        }
+
+        public override void RestoreFromJSON(JSONClass json, bool restorePhysical = true, bool restoreAppearance = true, JSONArray presetAtoms = null, bool setMissingToDefault = true)
+        {
+            base.RestoreFromJSON(json, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
+            StartCoroutine(RestoreFromJSONInternal(json));
+        }
+
+        private IEnumerator RestoreFromJSONInternal(JSONClass json)
+        {
+            yield return new WaitForEndOfFrame();
+
+            foreach(JSONClass lightJson in json["lightControls"].AsArray)
+            {
+                RestoreLightControlFromJSON(lightJson);
+            }
+
+            disableOtherLights.val = json["disableOtherLights"].AsBool;
+            lightUISelect.choices = lightControls.Keys.ToList();
+            lightUISelect.val = json["selected"].Value;
+        }
+
+        private void RestoreLightControlFromJSON(JSONClass lightJson)
+        {
+            string atomUid = lightJson["atomUid"].Value;
+            Atom atom = SuperController.singleton.GetAtomByUid(atomUid);
+            if(atom == null)
+            {
+                Log.Message($"Unable to control light atom '{atomUid}': " +
+                    $"mentioned in saved JSON but not found in scene.");
+            }
+            else
+            {
+                LightControl lc = gameObject.AddComponent<LightControl>();
+
+                FreeControllerV3 target = null;
+                if(lightJson["aimingAtAtomUid"] != null && lightJson["aimingAtControl"] != null)
+                {
+                    string aimingAtAtomUid = lightJson["aimingAtAtomUid"].Value;
+                    string aimingAtControl = lightJson["aimingAtControl"].Value;
+                    Atom aimingAtAtom = SuperController.singleton.GetAtomByUid(aimingAtAtomUid);
+                    target = aimingAtAtom?.gameObject
+                        .GetComponentsInChildren<FreeControllerV3>()
+                        .Where(it => it.name == aimingAtControl)
+                        .FirstOrDefault();
+
+                    if(target == null)
+                    {
+                        Log.Message($"Unable to point light atom '{atomUid}' at atom " +
+                            $"'{aimingAtAtomUid}' target control '{aimingAtControl}': " +
+                            $"target mentioned in saved JSON but not found in scene.");
+                    }
+                }
+
+                lc.InitFromSave(atom, target);
+                lightControls.Add(atom.uid, lc);
             }
         }
 

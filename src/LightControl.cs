@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using SimpleJSON;
+using System;
+using UnityEngine;
 
 namespace Illumination
 {
@@ -19,6 +21,28 @@ namespace Illumination
             fc.physicsEnabled = true;
             fc.onColor = new Color(1f, 1f, 1f, 0.5f);
             fc.highlighted = false;
+        }
+
+        public void InitFromSave(Atom lightAtom, FreeControllerV3 target)
+        {
+            try
+            {
+                this.lightAtom = lightAtom;
+
+                if(target != null)
+                {
+                    if(aimConstrain == null)
+                    {
+                        aimConstrain = lightAtom.gameObject.AddComponent<AimConstrain>();
+                        aimConstrain.Init(lightAtom);
+                    }
+                    aimConstrain.SetTarget(target);
+                }
+            }
+            catch(Exception e)
+            {
+                Log.Error($"Error initalizing from JSON for atom '{lightAtom?.name}': {e}", nameof(LightControl));
+            }
         }
 
         public void OnSelectTarget()
@@ -45,6 +69,18 @@ namespace Illumination
             return aimConstrain?.targetCtrl?.name;
         }
 
+        public JSONClass Serialize()
+        {
+            JSONClass json = new JSONClass();
+            json["atomUid"] = lightAtom.uid;
+            if(aimConstrain?.targetCtrl != null)
+            {
+                json["aimingAtAtomUid"] = aimConstrain.targetCtrl.containingAtom.uid;
+                json["aimingAtControl"] = aimConstrain.targetCtrl.name;
+            }
+            return json;
+        }
+
         private void OnEnable()
         {
             if(aimConstrain != null)
@@ -63,8 +99,7 @@ namespace Illumination
 
         private void OnDestroy()
         {
-            Destroy(aimConstrain);
-            SuperController.singleton.RemoveAtom(lightAtom);
+            Destroy(lightAtom.GetComponentInChildren<AimConstrain>());
         }
     }
 }
