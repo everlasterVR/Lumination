@@ -17,6 +17,8 @@ namespace Illumination
 
             FreeControllerV3 fc = atom.gameObject.GetComponentInChildren<FreeControllerV3>();
             fc.physicsEnabled = true;
+            fc.onColor = new Color(1f, 1f, 1f, 0.5f);
+            fc.highlighted = false;
         }
 
         public void OnSelectTarget()
