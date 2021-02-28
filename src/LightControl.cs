@@ -36,7 +36,8 @@ namespace Illumination
                         aimConstrain = lightAtom.gameObject.AddComponent<AimConstrain>();
                         aimConstrain.Init(lightAtom);
                     }
-                    aimConstrain.SetTarget(target);
+                    aimConstrain.targetCtrl = target;
+                    aimConstrain.AddAimConstraintTargetingTransform();
                 }
             }
             catch(Exception e)
@@ -52,9 +53,14 @@ namespace Illumination
                 aimConstrain = lightAtom.gameObject.AddComponent<AimConstrain>();
                 aimConstrain.Init(lightAtom);
             }
+            aimConstrain.targetCtrl = null;
 
             SuperController.singleton.SelectModeControllers(
-                new SuperController.SelectControllerCallback(target => aimConstrain.SetTarget(target))
+                new SuperController.SelectControllerCallback(target =>
+                {
+                    aimConstrain.targetCtrl = target;
+                    aimConstrain.AddAimConstraintTargetingTransform();
+                })
             );
         }
 

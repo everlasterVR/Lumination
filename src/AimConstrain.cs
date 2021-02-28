@@ -20,13 +20,7 @@ namespace Illumination
             sourceCtrl = parentAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
         }
 
-        public void SetTarget(FreeControllerV3 target)
-        {
-            targetCtrl = target;
-            AddAimConstraintTargetingTransform();
-        }
-
-        private void AddAimConstraintTargetingTransform()
+        public void AddAimConstraintTargetingTransform()
         {
             cs.sourceTransform = targetCtrl.transform;
             cs.weight = 1;
