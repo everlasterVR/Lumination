@@ -38,10 +38,10 @@ namespace Illumination
                 DisableOtherLightsUIToggle();
 
                 UIDynamicButton addSpotLightButton = CreateButton("Add spot light");
-                addSpotLightButton.button.onClick.AddListener(() => AddInvisibleLight(LightType.Spot));
+                addSpotLightButton.button.onClick.AddListener(() => AddInvisibleLight("Spot"));
 
                 UIDynamicButton addPointLightButton = CreateButton("Add point light");
-                addPointLightButton.button.onClick.AddListener(() => AddInvisibleLight(LightType.Point));
+                addPointLightButton.button.onClick.AddListener(() => AddInvisibleLight("Point"));
 
                 selectTargetButton = CreateButton("Select target to point at", true);
                 pointingAtInfo = new JSONStorableString("Pointing at info", "");
@@ -98,9 +98,9 @@ namespace Illumination
             });
         }
 
-        private void AddInvisibleLight(LightType lightType)
+        private void AddInvisibleLight(string lightType)
         {
-            StartCoroutine(Tools.CreateAtomCo("InvisibleLight", $"{atomUidPrefix}{lightType}Light", (atom) =>
+            StartCoroutine(Tools.CreateAtomCo("InvisibleLight", $"{atomUidPrefix}InvisibleLight", (atom) =>
             {
                 LightControl lc = gameObject.AddComponent<LightControl>();
                 lc.Init(atom, lightType);

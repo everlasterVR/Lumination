@@ -9,13 +9,13 @@ namespace Illumination
         public Atom lightAtom;
         private AimConstrain aimConstrain;
 
-        public void Init(Atom lightAtom, LightType lightType)
+        public void Init(Atom lightAtom, string lightType)
         {
             this.lightAtom = lightAtom;
 
             // init defaults
-            Light light = lightAtom.GetComponentInChildren<Light>();
-            light.type = lightType;
+            JSONStorable light = lightAtom.GetStorableByID("Light");
+            light.SetStringChooserParamValue("type", lightType);
 
             FreeControllerV3 fc = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
             fc.physicsEnabled = true;
