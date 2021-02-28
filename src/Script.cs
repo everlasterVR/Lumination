@@ -84,7 +84,8 @@ namespace Illumination
         {
             disableOtherLights = new JSONStorableBool("Disable other point and spot lights", false);
             UIDynamicToggle disableOtherLightsToggle = CreateToggle(disableOtherLights);
-            disableOtherLights.toggle.onValueChanged.AddListener(val => {
+            disableOtherLights.toggle.onValueChanged.AddListener(val =>
+            {
                 if(val)
                 {
                     DisableOtherPointAndSpotLights();
@@ -103,7 +104,7 @@ namespace Illumination
                 LightControl lc = gameObject.AddComponent<LightControl>();
                 lc.Init(atom, lightType);
                 lightControls.Add(atom.uid, lc);
-                lightUISelect.choices.Add(atom.uid);
+                lightUISelect.choices = lightControls.Keys.ToList();
                 lightUISelect.val = atom.uid;
             }));
         }
@@ -131,10 +132,11 @@ namespace Illumination
                     UpdateInfo(null);
                 });
 
-                removeButton.button.onClick.AddListener(() => {
+                removeButton.button.onClick.AddListener(() =>
+                {
                     lightControls.Remove(key);
                     Destroy(lc);
-                    lightUISelect.choices.Remove(key);
+                    lightUISelect.choices = lightControls.Keys.ToList();
                     lightUISelect.val = lightUISelect.choices.FirstOrDefault() ?? "";
                 });
             }
@@ -209,7 +211,8 @@ namespace Illumination
 
         private void EnableDisabledLights()
         {
-            disabledLights?.ForEach(atom => {
+            disabledLights?.ForEach(atom =>
+            {
                 if(!atom.on)
                 {
                     atom.ToggleOn();
@@ -242,7 +245,7 @@ namespace Illumination
                 lightControls.Remove(atom.uid);
                 Destroy(lc);
                 bool isSelected = lightUISelect.val == atom.uid;
-                lightUISelect.choices.Remove(atom.uid);
+                lightUISelect.choices = lightControls.Keys.ToList();
                 if(isSelected)
                 {
                     lightUISelect.val = lightUISelect.choices.FirstOrDefault() ?? "";
@@ -264,8 +267,7 @@ namespace Illumination
                 lightControls.Remove(fromuid);
                 lightControls.Add(touid, lc);
                 bool isSelected = lightUISelect.val == fromuid;
-                lightUISelect.choices.Remove(fromuid);
-                lightUISelect.choices.Add(touid);
+                lightUISelect.choices = lightControls.Keys.ToList();
                 if(isSelected)
                 {
                     lightUISelect.val = touid;
