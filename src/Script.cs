@@ -38,16 +38,16 @@ namespace Illumination
                 TitleUITextField();
                 DisableOtherLightsUIToggle();
 
-                UIDynamicButton addSpotLightButton = CreateButton("Add spot light");
-                addSpotLightButton.button.onClick.AddListener(() => AddInvisibleLight("Spot"));
+                UIDynamicButton addSpotLightButton = CreateButton("Add new spot light");
+                addSpotLightButton.button.onClick.AddListener(() => AddNewInvisibleLight("Spot"));
                 UI.DecreaseAvailableHeight(addSpotLightButton.height);
 
-                UIDynamicButton addPointLightButton = CreateButton("Add point light");
-                addPointLightButton.button.onClick.AddListener(() => AddInvisibleLight("Point"));
+                UIDynamicButton addPointLightButton = CreateButton("Add new point light");
+                addPointLightButton.button.onClick.AddListener(() => AddNewInvisibleLight("Point"));
                 UI.DecreaseAvailableHeight(addPointLightButton.height);
 
                 UIDynamicButton addLightFromSceneButton = CreateButton("Add light from scene");
-                //addLightFromSceneButton.button.onClick.AddListener(() => { });
+                addLightFromSceneButton.button.onClick.AddListener(() => AddSelectedInvisibleLight());
                 UI.DecreaseAvailableHeight(addLightFromSceneButton.height);
 
                 UISpacer(25f);
@@ -100,7 +100,7 @@ namespace Illumination
             });
         }
 
-        private void AddInvisibleLight(string lightType)
+        private void AddNewInvisibleLight(string lightType)
         {
             if(lightControls.Count >= 6)
             {
@@ -110,27 +110,77 @@ namespace Illumination
 
             StartCoroutine(Tools.CreateAtomCo("InvisibleLight", $"{atomUidPrefix}InvisibleLight", (atom) =>
             {
-                LightControl lc = gameObject.AddComponent<LightControl>();
-                lc.Init(atom, lightType);
-                string uid = atom.uid;
-
-                if(infoUIField != null)
-                {
-                    UI.IncreaseAvailableHeight(infoUIField.height);
-                    RemoveTextField(infoUIField);
-                }
-                lc.uiButton = UILightButton(uid);
-                lightControls.Add(uid, lc);
-                RefreshUI(uid);
-
-                if(lightControls.Count > 0)
-                {
-                    infoUIField = CreateTextField(info);
-                    infoUIField.height = 350f;
-                    UI.DecreaseAvailableHeight(infoUIField.height);
-                    leftUISpacer.height -= infoUIField.height + 15f;
-                }
+                AddCreatedAtomToPlugin(atom, lightType);
             }));
+        }
+
+        private void AddSelectedInvisibleLight()
+        {
+            try
+            {
+                SuperController.singleton.SelectModeControllers(
+                    new SuperController.SelectControllerCallback(targetCtrl =>
+                    {
+                        Atom atom = targetCtrl.containingAtom;
+                        if(atom.type != "InvisibleLight")
+                        {
+                            Log.Message("Selected atom is not an InvisibleLight atom!");
+                            return;
+                        }
+
+                        if(lightControls.ContainsKey(atom.uid))
+                        {
+                            Log.Message("Selected InvisibleLight is already added!");
+                            return;
+                        }
+
+                        if(!atom.on)
+                        {
+                            atom.ToggleOn();
+                        }
+
+                        JSONStorable light = atom.GetStorableByID("Light");
+                        string lightType = $"{light.GetStringChooserParamValue("type")}";
+
+                        if(lightType != "Spot" && lightType != "Point")
+                        {
+                            Log.Message("Only Spot and Point lights are supported.");
+                            return;
+                        }
+
+                        light.SetBoolParamValue("on", true);
+                        AddCreatedAtomToPlugin(atom, lightType);
+                    })
+                );
+            }
+            catch(Exception e)
+            {
+                Log.Error($"{e}");
+            }
+        }
+
+        private void AddCreatedAtomToPlugin(Atom atom, string lightType)
+        {
+            LightControl lc = gameObject.AddComponent<LightControl>();
+            lc.Init(atom, lightType);
+            string uid = atom.uid;
+
+            if(infoUIField != null)
+            {
+                UI.IncreaseAvailableHeight(infoUIField.height);
+                RemoveTextField(infoUIField);
+            }
+            lc.uiButton = UILightButton(uid);
+            lightControls.Add(uid, lc);
+            RefreshUI(uid);
+
+            if(lightControls.Count > 0)
+            {
+                infoUIField = CreateTextField(info);
+                infoUIField.height = 350f;
+                UI.DecreaseAvailableHeight(infoUIField.height);
+                leftUISpacer.height -= infoUIField.height + 15f;
+            }
         }
 
         private void UISpacer(float height, bool rightSide = false)
