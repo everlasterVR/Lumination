@@ -21,6 +21,10 @@ namespace Illumination
         private UIDynamicToggle enableAimAtTargetToggle;
         private string selected = "";
 
+        private UIDynamic leftUISpacer;
+        private JSONStorableString info = new JSONStorableString("Info", "");
+        private UIDynamicTextField infoUIField;
+
         public override void Init()
         {
             try
@@ -36,11 +40,20 @@ namespace Illumination
 
                 UIDynamicButton addSpotLightButton = CreateButton("Add spot light");
                 addSpotLightButton.button.onClick.AddListener(() => AddInvisibleLight("Spot"));
+                UI.DecreaseAvailableHeight(addSpotLightButton.height);
 
                 UIDynamicButton addPointLightButton = CreateButton("Add point light");
                 addPointLightButton.button.onClick.AddListener(() => AddInvisibleLight("Point"));
+                UI.DecreaseAvailableHeight(addPointLightButton.height);
+
+                UIDynamicButton addLightFromSceneButton = CreateButton("Add light from scene");
+                //addLightFromSceneButton.button.onClick.AddListener(() => { });
+                UI.DecreaseAvailableHeight(addLightFromSceneButton.height);
 
                 UISpacer(25f);
+
+                leftUISpacer = CreateSpacer();
+                leftUISpacer.height = UI.GetAvailableHeight();
 
                 //right side
 
@@ -65,6 +78,7 @@ namespace Illumination
             UIDynamicTextField field = CreateTextField(storable);
             field.UItext.fontSize = 36;
             field.height = 100;
+            UI.DecreaseAvailableHeight(field.height);
             storable.val = $"<b>{nameof(Illumination)}</b>\n<size=28>v{version}</size>";
         }
 
@@ -72,6 +86,7 @@ namespace Illumination
         {
             disableOtherLights = new JSONStorableBool("Disable other point and spot lights", false);
             UIDynamicToggle disableOtherLightsToggle = CreateToggle(disableOtherLights);
+            UI.DecreaseAvailableHeight(disableOtherLightsToggle.height);
             disableOtherLights.toggle.onValueChanged.AddListener(val =>
             {
                 if(val)
@@ -87,14 +102,34 @@ namespace Illumination
 
         private void AddInvisibleLight(string lightType)
         {
+            if(lightControls.Count >= 6)
+            {
+                Log.Message("You have the maximum number of lights.");
+                return;
+            }
+
             StartCoroutine(Tools.CreateAtomCo("InvisibleLight", $"{atomUidPrefix}InvisibleLight", (atom) =>
             {
                 LightControl lc = gameObject.AddComponent<LightControl>();
                 lc.Init(atom, lightType);
                 string uid = atom.uid;
+
+                if(infoUIField != null)
+                {
+                    UI.IncreaseAvailableHeight(infoUIField.height);
+                    RemoveTextField(infoUIField);
+                }
                 lc.uiButton = UILightButton(uid);
                 lightControls.Add(uid, lc);
                 RefreshUI(uid);
+
+                if(lightControls.Count > 0)
+                {
+                    infoUIField = CreateTextField(info);
+                    infoUIField.height = 350f;
+                    UI.DecreaseAvailableHeight(infoUIField.height);
+                    leftUISpacer.height -= infoUIField.height + 15f;
+                }
             }));
         }
 
@@ -102,12 +137,17 @@ namespace Illumination
         {
             UIDynamic spacer = CreateSpacer(rightSide);
             spacer.height = height;
+            UI.DecreaseAvailableHeight(height, rightSide);
         }
 
         private UIDynamicButton UILightButton(string uid)
         {
+            RemoveSpacer(leftUISpacer);
             UIDynamicButton uiButton = CreateButton(uid);
+            UI.DecreaseAvailableHeight(uiButton.height);
             uiButton.buttonColor = UI.black;
+            leftUISpacer = CreateSpacer();
+            leftUISpacer.height = UI.GetAvailableHeight();
             uiButton.button.onClick.AddListener(() => {
                 RefreshUI(uid);
             });
@@ -228,7 +268,10 @@ namespace Illumination
             {
                 LightControl lc = lightControls[atom.uid];
                 lightControls.Remove(atom.uid);
+                UI.IncreaseAvailableHeight(lc.uiButton.height);
                 RemoveButton(lc.uiButton);
+                leftUISpacer.height = UI.GetAvailableHeight();
+
                 Destroy(lc);
 
                 if(selected == atom.uid)
@@ -238,6 +281,12 @@ namespace Illumination
 
                 RefreshUI(lightControls?.Keys.FirstOrDefault() ?? "");
             }
+            if(lightControls.Count == 0 && infoUIField != null)
+            {
+                UI.IncreaseAvailableHeight(infoUIField.height);
+                RemoveTextField(infoUIField);
+            }
+
             //other light atom disabled by plugin was removed
             if(disabledLights.Contains(atom))
             {
