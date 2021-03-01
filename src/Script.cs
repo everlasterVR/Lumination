@@ -107,6 +107,7 @@ namespace Illumination
         private UIDynamicButton UILightButton(string uid)
         {
             UIDynamicButton uiButton = CreateButton(uid);
+            uiButton.buttonColor = UI.black;
             uiButton.button.onClick.AddListener(() => {
                 RefreshUI(uid);
             });
@@ -117,19 +118,23 @@ namespace Illumination
         {
             if(lightControls.ContainsKey(selected))
             {
-                RemoveToggle(lightControls[selected].enableLookAt);
+                LightControl selectedLc = lightControls[selected];
+                selectedLc.uiButton.label = UI.ColorText(selected, UI.lightGray);
+                selectedLc.SetOnColor(UI.white);
+                RemoveToggle(selectedLc.enableLookAt);
             }
             else
             {
                 RemoveToggle(dummyEnableAimAtTarget);
             }
 
-            selected = uid;
             selectTargetButton.button.onClick.RemoveAllListeners();
+            selected = uid;
 
             if(lightControls.ContainsKey(uid))
             {
                 LightControl lc = lightControls[uid];
+                lc.uiButton.label =  UI.BoldText(UI.ColorText(uid, UI.blue));
                 CreateToggle(lc.enableLookAt, true);
                 selectTargetButton.button.interactable = true;
                 lc.enableLookAt.toggle.interactable = lc.target != null;
@@ -163,7 +168,7 @@ namespace Illumination
 
         private void DisableOtherPointAndSpotLights()
         {
-            SuperController.singleton.GetAtoms().ForEach(atom => DisableAtomIfIsOtherLight(atom));
+            GetSceneAtoms().ForEach(atom => DisableAtomIfIsOtherLight(atom));
         }
 
         private bool DisableAtomIfIsOtherLight(Atom atom)
@@ -296,7 +301,7 @@ namespace Illumination
         private void RestoreLightControlFromJSON(JSONClass lightJson)
         {
             string atomUid = lightJson["atomUid"].Value;
-            Atom atom = SuperController.singleton.GetAtomByUid(atomUid);
+            Atom atom = GetAtomById(atomUid);
             if(atom == null)
             {
                 Log.Message($"Unable to control light atom '{atomUid}': " +
@@ -311,7 +316,7 @@ namespace Illumination
                 {
                     string aimingAtAtomUid = lightJson["aimingAtAtomUid"].Value;
                     string aimingAtControl = lightJson["aimingAtControl"].Value;
-                    Atom aimingAtAtom = SuperController.singleton.GetAtomByUid(aimingAtAtomUid);
+                    Atom aimingAtAtom = GetAtomById(aimingAtAtomUid);
                     target = aimingAtAtom?.gameObject
                         .GetComponentsInChildren<FreeControllerV3>()
                         .Where(it => it.name == aimingAtControl)
@@ -342,16 +347,20 @@ namespace Illumination
         //    }
         //}
 
-        //public void Update()
-        //{
-        //    try
-        //    {
-        //    }
-        //    catch(Exception e)
-        //    {
-        //        Log.Error($"{e}");
-        //    }
-        //}
+        public void Update()
+        {
+            try
+            {
+                if(lightControls != null && lightControls.ContainsKey(selected))
+                {
+                    lightControls[selected].SetOnColor(UITransform.gameObject.activeInHierarchy ? UI.blue : UI.white);
+                }
+            }
+            catch(Exception e)
+            {
+                Log.Error($"{e}");
+            }
+        }
 
         public void OnDisable()
         {

@@ -22,8 +22,7 @@ namespace Illumination
             JSONStorable light = lightAtom.GetStorableByID("Light");
             light.SetStringChooserParamValue("type", lightType);
 
-            control.onColor = new Color(1f, 1f, 1f, 0.5f);
-            control.highlighted = false; // trigger color change
+            SetOnColor(UI.white);
         }
 
         public void InitFromSave(Atom lightAtom, FreeControllerV3 targetCtrl, bool enableLookAtVal)
@@ -65,6 +64,12 @@ namespace Illumination
         {
             enableLookAt.val = false;
             target = null;
+        }
+
+        public void SetOnColor(Color color)
+        {
+            control.onColor = color;
+            control.highlighted = false; // trigger color change
         }
 
         private void FixedUpdate()
