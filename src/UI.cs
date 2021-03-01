@@ -9,24 +9,29 @@ namespace Illumination
         private static float availableHeightRight = 1200f;
 
         public static Color defaultOnColor = new Color(0.0f, 1f, 0.0f, 0.5f);
-        public static Color black = Color.black;
+        public static Color black = UnityEngine.Color.black;
         public static Color blue = new Color(0.33f, 0.33f, 1f);
         public static Color lightGray = new Color(0.75f, 0.75f, 0.75f);
-        public static Color white = Color.white;
+        public static Color white = UnityEngine.Color.white;
 
-        public static string ColorText(string text, Color color)
+        public static string Color(string text, Color color)
         {
             return $"<color=#{ColorUtility.ToHtmlStringRGB(color)}>{text}</color>";
         }
 
-        public static string BoldText(string text)
+        public static string Bold(string text)
         {
             return $"<b>{text}</b>";
         }
 
-        public static string ItalicText(string text)
+        public static string Italic(string text)
         {
             return $"<i>{text}</i>";
+        }
+
+        public static string Size(string text, int size)
+        {
+            return $"<size={size}>{text}</size>";
         }
 
         public static void DecreaseAvailableHeight(float amount, bool rightSide = false)

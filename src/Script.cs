@@ -17,13 +17,11 @@ namespace Illumination
         private List<Atom> disabledLights = new List<Atom>();
 
         private UIDynamicButton selectTargetButton;
-        private JSONStorableBool dummyEnableAimAtTarget = new JSONStorableBool("Enable aiming at target", false);
-        private UIDynamicToggle enableAimAtTargetToggle;
         private string selected = "";
 
+        private UIDynamicButton removeLightButton;
         private UIDynamic leftUISpacer;
-        private JSONStorableString info = new JSONStorableString("Info", "");
-        private UIDynamicTextField infoUIField;
+        private UIDynamicColorPicker lightColorPicker;
 
         private bool restoringFromJson = false;
 
@@ -37,33 +35,68 @@ namespace Illumination
                     return;
                 }
 
+                //left side UI
+
                 TitleUITextField();
                 DisableOtherLightsUIToggle();
 
-                UIDynamicButton addSpotLightButton = CreateButton("Add new spot light");
-                addSpotLightButton.button.onClick.AddListener(() => AddNewInvisibleLight("Spot"));
+                UIDynamicButton addSpotLightButton = CreateButton("Add new spotlight");
+                addSpotLightButton.button.onClick.AddListener(() => AddNewInvisibleLight());
                 UI.DecreaseAvailableHeight(addSpotLightButton.height);
-
-                UIDynamicButton addPointLightButton = CreateButton("Add new point light");
-                addPointLightButton.button.onClick.AddListener(() => AddNewInvisibleLight("Point"));
-                UI.DecreaseAvailableHeight(addPointLightButton.height);
 
                 UIDynamicButton addLightFromSceneButton = CreateButton("Add light from scene");
                 addLightFromSceneButton.button.onClick.AddListener(() => AddSelectedInvisibleLight());
                 UI.DecreaseAvailableHeight(addLightFromSceneButton.height);
 
-                UISpacer(25f);
+                removeLightButton = CreateButton("Remove selected atom");
+                removeLightButton.button.onClick.AddListener(() => RemoveSelectedInvisibleLight());
+                UI.DecreaseAvailableHeight(removeLightButton.height);
+
+                UISpacer(15f);
 
                 leftUISpacer = CreateSpacer();
                 leftUISpacer.height = UI.GetAvailableHeight();
 
-                //right side
-
-                UISpacer(100f, true);
+                //right side UI
 
                 selectTargetButton = CreateButton("Select target to aim at", true);
-                enableAimAtTargetToggle = CreateToggle(dummyEnableAimAtTarget, true);
-                dummyEnableAimAtTarget.toggle.interactable = false;
+                selectTargetButton.height = 100f;
+
+                JSONStorableBool enableAimAtTarget = new JSONStorableBool("Enable aiming at target", false);
+                UIDynamicToggle enableAimAtTargetToggle = CreateToggle(enableAimAtTarget, true);
+                JSONStorableBool autoIntensity = new JSONStorableBool("Adjust intensity relative to target", false);
+                UIDynamicToggle autoIntensityToggle = CreateToggle(autoIntensity, true);
+                JSONStorableBool autoRange = new JSONStorableBool("Adjust range relative to target", false);
+                UIDynamicToggle autoRangeToggle = CreateToggle(autoRange, true);
+                JSONStorableBool autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to target", false);
+                UIDynamicToggle autoSpotAngleToggle = CreateToggle(autoSpotAngle, true);
+
+                UISpacer(15f, true);
+
+                JSONStorableFloat intensity = new JSONStorableFloat("Intensity", 1, 0.1f, 5);
+                UIDynamicSlider intensitySlider = CreateSlider(intensity, true);
+                intensitySlider.valueFormat = "F2";
+
+                JSONStorableFloat range = new JSONStorableFloat("Range", 5, 1, 25);
+                UIDynamicSlider rangeSlider = CreateSlider(range, true);
+                rangeSlider.valueFormat = "F1";
+
+                UIDynamicPopup lightType = CreatePopup(new JSONStorableStringChooser(
+                    "lightType",
+                    new List<string> { "Spot", "Point" },
+                    "Spot",
+                    "Light Type"
+                ), true);
+
+                JSONStorableFloat spotAngle = new JSONStorableFloat("Spot angle", 80, 10, 150);
+                UIDynamicSlider spotAngleSlider = CreateSlider(spotAngle, true);
+                spotAngleSlider.valueFormat = "F0";
+
+                JSONStorableFloat shadowStrength = new JSONStorableFloat("Shadow strength", 0.2f, 0, 1);
+                UIDynamicSlider shadowStrengthSlider = CreateSlider(shadowStrength, true);
+                shadowStrengthSlider.valueFormat = "F2";
+
+                //rest
 
                 RefreshUI("");
                 AddSuperControllerOnAtomActions();
@@ -130,7 +163,7 @@ namespace Illumination
             });
         }
 
-        private void AddNewInvisibleLight(string lightType)
+        private void AddNewInvisibleLight()
         {
             if(lightControls.Count >= 6)
             {
@@ -140,7 +173,7 @@ namespace Illumination
 
             StartCoroutine(Tools.CreateAtomCo("InvisibleLight", $"{atomUidPrefix}InvisibleLight", (atom) =>
             {
-                AddExistingILAtomToPlugin(atom, lightType);
+                AddExistingILAtomToPlugin(atom, "Spot");
             }));
         }
 
@@ -195,10 +228,10 @@ namespace Illumination
             lc.Init(atom, lightType);
             string uid = atom.uid;
 
-            if(infoUIField != null)
+            if(lightColorPicker != null)
             {
-                UI.IncreaseAvailableHeight(infoUIField.height);
-                RemoveTextField(infoUIField);
+                UI.IncreaseAvailableHeight(lightColorPicker.height);
+                RemoveColorPicker(lightColorPicker);
             }
             lc.uiButton = UILightButton(uid);
             lightControls.Add(uid, lc);
@@ -206,11 +239,27 @@ namespace Illumination
 
             if(lightControls.Count > 0)
             {
-                infoUIField = CreateTextField(info);
-                infoUIField.height = 350f;
-                UI.DecreaseAvailableHeight(infoUIField.height);
-                leftUISpacer.height -= infoUIField.height + 15f;
+                CreateLightColorPicker();
+                UI.DecreaseAvailableHeight(lightColorPicker.height);
+                leftUISpacer.height -= lightColorPicker.height + 15f;
             }
+
+            removeLightButton.button.interactable = true;
+        }
+
+        private void RemoveSelectedInvisibleLight()
+        {
+            //if(lightControls != null && lightControls.ContainsKey(selected))
+            if(lightControls.ContainsKey(selected))
+            {
+                SuperController.singleton.RemoveAtom(lightControls[selected].lightAtom);
+            }
+        }
+
+        private void CreateLightColorPicker()
+        {
+            JSONStorableColor lightColor = new JSONStorableColor("Light Color", HSVColorPicker.RGBToHSV(255, 228, 199));
+            lightColorPicker = CreateColorPicker(lightColor);
         }
 
         private void UISpacer(float height, bool rightSide = false)
@@ -223,7 +272,7 @@ namespace Illumination
         private UIDynamicButton UILightButton(string uid)
         {
             RemoveSpacer(leftUISpacer);
-            UIDynamicButton uiButton = CreateButton(UI.ColorText(uid, UI.lightGray));
+            UIDynamicButton uiButton = CreateButton(UI.Color(uid, UI.lightGray));
             UI.DecreaseAvailableHeight(uiButton.height);
             uiButton.buttonColor = UI.black;
             leftUISpacer = CreateSpacer();
@@ -239,13 +288,9 @@ namespace Illumination
             if(lightControls.ContainsKey(selected))
             {
                 LightControl selectedLc = lightControls[selected];
-                selectedLc.uiButton.label = UI.ColorText(selected, UI.lightGray);
+                selectedLc.uiButton.label = UI.Color(selected, UI.lightGray);
                 selectedLc.SetOnColor(UI.white);
                 RemoveToggle(selectedLc.enableLookAt);
-            }
-            else
-            {
-                RemoveToggle(dummyEnableAimAtTarget);
             }
 
             selectTargetButton.button.onClick.RemoveAllListeners();
@@ -254,22 +299,25 @@ namespace Illumination
             if(lightControls.ContainsKey(uid))
             {
                 LightControl lc = lightControls[uid];
-                lc.uiButton.label =  UI.BoldText(UI.ColorText(uid, UI.blue));
+                lc.uiButton.label =  UI.Bold(UI.Color(uid, UI.blue));
                 CreateToggle(lc.enableLookAt, true);
                 selectTargetButton.button.interactable = true;
+                selectTargetButton.label = $"Select target to aim at\n{UI.Italic(UI.Size(lc.GetTargetString(), 26))}";
                 lc.enableLookAt.toggle.interactable = lc.target != null;
 
                 selectTargetButton.button.onClick.AddListener(() =>
                 {
-                    lc.OnSelectTarget();
+                    StartCoroutine(lc.OnSelectTarget((targetString) =>
+                    {
+                        selectTargetButton.label = $"Select target to aim at\n{UI.Italic(UI.Size(targetString, 26))}";
+                    }));
                     lc.enableLookAt.toggle.interactable = true;
                 });
             }
             else
             {
-                selectTargetButton.button.interactable = false;
-                CreateToggle(dummyEnableAimAtTarget, true);
-                dummyEnableAimAtTarget.toggle.interactable = false;
+                removeLightButton.button.interactable = false;
+                //TODO empty UI
             }
         }
 
@@ -361,10 +409,10 @@ namespace Illumination
 
                 RefreshUI(lightControls?.Keys.FirstOrDefault() ?? "");
             }
-            if(lightControls.Count == 0 && infoUIField != null)
+            if(lightControls.Count == 0 && lightColorPicker != null)
             {
-                UI.IncreaseAvailableHeight(infoUIField.height);
-                RemoveTextField(infoUIField);
+                UI.IncreaseAvailableHeight(lightColorPicker.height);
+                RemoveColorPicker(lightColorPicker);
             }
 
             //other light atom disabled by plugin was removed
@@ -471,10 +519,10 @@ namespace Illumination
                 lc.InitFromSave(atom, target, lightJson["enableLookAt"].AsBool);
                 string uid = atom.uid;
 
-                if(infoUIField != null)
+                if(lightColorPicker != null)
                 {
-                    UI.IncreaseAvailableHeight(infoUIField.height);
-                    RemoveTextField(infoUIField);
+                    UI.IncreaseAvailableHeight(lightColorPicker.height);
+                    RemoveColorPicker(lightColorPicker);
                 }
                 lc.uiButton = UILightButton(uid);
                 lightControls.Add(uid, lc);
@@ -482,10 +530,9 @@ namespace Illumination
 
                 if(lightControls.Count > 0)
                 {
-                    infoUIField = CreateTextField(info);
-                    infoUIField.height = 350f;
-                    UI.DecreaseAvailableHeight(infoUIField.height);
-                    leftUISpacer.height -= infoUIField.height + 15f;
+                    CreateLightColorPicker();
+                    UI.DecreaseAvailableHeight(lightColorPicker.height);
+                    leftUISpacer.height -= lightColorPicker.height + 15f;
                 }
             }
         }

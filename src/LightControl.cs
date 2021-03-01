@@ -1,5 +1,6 @@
 ﻿using SimpleJSON;
 using System;
+using System.Collections;
 using UnityEngine;
 
 namespace Illumination
@@ -45,16 +46,36 @@ namespace Illumination
             }
         }
 
-        public void OnSelectTarget()
+        public IEnumerator OnSelectTarget(Action<string> callback)
         {
             control.physicsEnabled = true;
+            bool waiting = true;
 
             SuperController.singleton.SelectModeControllers(
                 new SuperController.SelectControllerCallback(targetCtrl => {
+                    waiting = false;
                     target = targetCtrl;
                     enableLookAt.val = true;
                 })
             );
+
+            while(waiting)
+            {
+                yield return null;
+            }
+
+            callback(GetTargetString());
+        }
+
+        public string GetTargetString()
+        {
+            string uid = target?.containingAtom.uid;
+            string name = target?.name;
+            if(uid != null && name != null)
+            {
+                return $"{uid}:{name}";
+            }
+            return null;
         }
 
         public void OnStopAiming()
@@ -82,17 +103,6 @@ namespace Illumination
             }
 
             control.transform.LookAt(target.followWhenOff.position);
-        }
-
-        public string GetTargetString()
-        {
-            string uid = target?.containingAtom.uid;
-            string name = target?.name;
-            if(uid != null && name != null)
-            {
-                return $"{uid}:{name}";
-            }
-            return null;
         }
 
         public JSONClass Serialize()
