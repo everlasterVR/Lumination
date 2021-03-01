@@ -193,7 +193,7 @@ namespace Illumination
         private UIDynamicButton UILightButton(string uid)
         {
             RemoveSpacer(leftUISpacer);
-            UIDynamicButton uiButton = CreateButton(uid);
+            UIDynamicButton uiButton = CreateButton(UI.ColorText(uid, UI.lightGray));
             UI.DecreaseAvailableHeight(uiButton.height);
             uiButton.buttonColor = UI.black;
             leftUISpacer = CreateSpacer();
@@ -393,7 +393,11 @@ namespace Illumination
             DisableOtherPointAndSpotLights();
             if(json["selected"] != null)
             {
-                RefreshUI(json["selected"].Value);
+                string uid = json["selected"].Value;
+                if(lightControls.ContainsKey(uid))
+                {
+                    RefreshUI(uid);
+                }
             }
         }
 
@@ -429,9 +433,26 @@ namespace Illumination
                     }
                 }
 
+                //duplicated from AddCreatedAtomToPlugin
                 lc.InitFromSave(atom, target, lightJson["enableLookAt"].AsBool);
-                lc.uiButton = UILightButton(atom.uid);
-                lightControls.Add(atom.uid, lc);
+                string uid = atom.uid;
+
+                if(infoUIField != null)
+                {
+                    UI.IncreaseAvailableHeight(infoUIField.height);
+                    RemoveTextField(infoUIField);
+                }
+                lc.uiButton = UILightButton(uid);
+                lightControls.Add(uid, lc);
+                RefreshUI(uid);
+
+                if(lightControls.Count > 0)
+                {
+                    infoUIField = CreateTextField(info);
+                    infoUIField.height = 350f;
+                    UI.DecreaseAvailableHeight(infoUIField.height);
+                    leftUISpacer.height -= infoUIField.height + 15f;
+                }
             }
         }
 
