@@ -32,10 +32,7 @@ namespace Illumination
                 this.lightAtom = lightAtom;
                 control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
                 enableLookAt = new JSONStorableBool("Enable aiming at target", enableLookAtVal);
-
-                control.onColor = new Color(1f, 1f, 1f, 0.5f);
-                control.highlighted = false;
-
+                SetOnColor(UI.white);
                 if(targetCtrl != null)
                 {
                     control.physicsEnabled = true;
@@ -68,6 +65,11 @@ namespace Illumination
 
         public void SetOnColor(Color color)
         {
+            if(control == null)
+            {
+                return;
+            }
+
             control.onColor = color;
             control.highlighted = false; // trigger color change
         }
@@ -108,6 +110,7 @@ namespace Illumination
 
         private void OnEnable()
         {
+            SetOnColor(UI.white);
             if(enableLookAt != null)
             {
                 enableLookAt.val = target != null;
@@ -116,6 +119,7 @@ namespace Illumination
 
         private void OnDisable()
         {
+            SetOnColor(UI.defaultOnColor);
             if(enableLookAt != null)
             {
                 enableLookAt.val = false;

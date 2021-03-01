@@ -8,6 +8,7 @@ namespace Illumination
         private static float availableHeightLeft = 1200f;
         private static float availableHeightRight = 1200f;
 
+        public static Color defaultOnColor = new Color(0.0f, 1f, 0.0f, 0.5f);
         public static Color black = Color.black;
         public static Color blue = new Color(0.33f, 0.33f, 1f);
         public static Color lightGray = new Color(0.75f, 0.75f, 0.75f);
