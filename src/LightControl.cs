@@ -8,12 +8,15 @@ namespace Illumination
     {
         public Atom lightAtom;
         public FreeControllerV3 control;
-        private AimConstrain aimConstrain;
+        public FreeControllerV3 target;
+        public UIDynamicButton uiButton;
+        public JSONStorableBool enableLookAt;
 
         public void Init(Atom lightAtom, string lightType)
         {
             this.lightAtom = lightAtom;
             control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+            enableLookAt = new JSONStorableBool("Enable aiming at target", false);
 
             // init defaults
             JSONStorable light = lightAtom.GetStorableByID("Light");
@@ -23,23 +26,21 @@ namespace Illumination
             control.highlighted = false; // trigger color change
         }
 
-        public void InitFromSave(Atom lightAtom, FreeControllerV3 target)
+        public void InitFromSave(Atom lightAtom, FreeControllerV3 targetCtrl, bool enableLookAtVal)
         {
             try
             {
                 this.lightAtom = lightAtom;
                 control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+                enableLookAt = new JSONStorableBool("Enable aiming at target", enableLookAtVal);
+
                 control.onColor = new Color(1f, 1f, 1f, 0.5f);
                 control.highlighted = false;
 
-                if(target != null)
+                if(targetCtrl != null)
                 {
                     control.physicsEnabled = true;
-                    if(aimConstrain == null)
-                    {
-                        aimConstrain = lightAtom.gameObject.AddComponent<AimConstrain>();
-                        aimConstrain.Init(control, target);
-                    }
+                    target = targetCtrl;
                 }
             }
             catch(Exception e)
@@ -50,28 +51,36 @@ namespace Illumination
 
         public void OnSelectTarget()
         {
-            if(aimConstrain == null)
-            {
-                aimConstrain = lightAtom.gameObject.AddComponent<AimConstrain>();
-            }
-            aimConstrain.targetCtrl = null;
             control.physicsEnabled = true;
 
             SuperController.singleton.SelectModeControllers(
-                new SuperController.SelectControllerCallback(target => aimConstrain.Init(control, target))
+                new SuperController.SelectControllerCallback(targetCtrl => {
+                    target = targetCtrl;
+                    enableLookAt.val = true;
+                })
             );
         }
 
         public void OnStopAiming()
         {
-            Destroy(aimConstrain);
-            aimConstrain = null;
+            enableLookAt.val = false;
+            target = null;
         }
 
-        public string GetAimConstrainTargetString()
+        private void FixedUpdate()
         {
-            string uid = aimConstrain?.targetCtrl?.containingAtom.uid;
-            string name = aimConstrain?.targetCtrl?.name;
+            if(target == null || !enableLookAt.val)
+            {
+                return;
+            }
+
+            control.transform.LookAt(target.followWhenOff.position);
+        }
+
+        public string GetTargetString()
+        {
+            string uid = target?.containingAtom.uid;
+            string name = target?.name;
             if(uid != null && name != null)
             {
                 return $"{uid}:{name}";
@@ -83,33 +92,29 @@ namespace Illumination
         {
             JSONClass json = new JSONClass();
             json["atomUid"] = lightAtom.uid;
-            if(aimConstrain?.targetCtrl != null)
+            json["enableLookAt"].AsBool = enableLookAt.val;
+            if(target != null)
             {
-                json["aimingAtAtomUid"] = aimConstrain.targetCtrl.containingAtom.uid;
-                json["aimingAtControl"] = aimConstrain.targetCtrl.name;
+                json["aimingAtAtomUid"] = target.containingAtom.uid;
+                json["aimingAtControl"] = target.name;
             }
             return json;
         }
 
         private void OnEnable()
         {
-            if(aimConstrain != null)
+            if(enableLookAt != null)
             {
-                aimConstrain.SetConstraintActive(true);
+                enableLookAt.val = target != null;
             }
         }
 
         private void OnDisable()
         {
-            if(aimConstrain != null)
+            if(enableLookAt != null)
             {
-                aimConstrain.SetConstraintActive(false);
+                enableLookAt.val = false;
             }
-        }
-
-        private void OnDestroy()
-        {
-            Destroy(lightAtom.GetComponentInChildren<AimConstrain>());
         }
     }
 }

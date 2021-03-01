@@ -16,9 +16,10 @@ namespace Illumination
         private JSONStorableBool disableOtherLights;
         private List<Atom> disabledLights = new List<Atom>();
 
-        private JSONStorableStringChooser lightUISelect;
         private UIDynamicButton selectTargetButton;
-        private UIDynamicButton stopAimingButton;
+        private JSONStorableBool dummyEnableAimAtTarget = new JSONStorableBool("Enable aiming at target", false);
+        private UIDynamicToggle enableAimAtTargetToggle;
+        private string selected = "";
 
         public override void Init()
         {
@@ -31,8 +32,6 @@ namespace Illumination
                 }
 
                 TitleUITextField();
-                CreateHairSelect();
-
                 DisableOtherLightsUIToggle();
 
                 UIDynamicButton addSpotLightButton = CreateButton("Add spot light");
@@ -41,10 +40,17 @@ namespace Illumination
                 UIDynamicButton addPointLightButton = CreateButton("Add point light");
                 addPointLightButton.button.onClick.AddListener(() => AddInvisibleLight("Point"));
 
-                selectTargetButton = CreateButton("Select target to aim at", true);
-                stopAimingButton = CreateButton("", true);
+                UISpacer(25f);
 
-                RefreshUI(lightUISelect.val);
+                //right side
+
+                UISpacer(100f, true);
+
+                selectTargetButton = CreateButton("Select target to aim at", true);
+                enableAimAtTargetToggle = CreateToggle(dummyEnableAimAtTarget, true);
+                dummyEnableAimAtTarget.toggle.interactable = false;
+
+                RefreshUI("");
                 AddSuperControllerOnAtomActions();
             }
             catch(Exception e)
@@ -60,19 +66,6 @@ namespace Illumination
             field.UItext.fontSize = 36;
             field.height = 100;
             storable.val = $"<b>{nameof(Illumination)}</b>\n<size=28>v{version}</size>";
-        }
-
-        private void CreateHairSelect()
-        {
-            lightUISelect = new JSONStorableStringChooser(
-                "Light select",
-                new List<string>(),
-                "",
-                "Selected",
-                RefreshUI
-            );
-            UIDynamicPopup lightUISelectPopup = CreatePopup(lightUISelect, true);
-            lightUISelectPopup.height = 100;
         }
 
         private void DisableOtherLightsUIToggle()
@@ -98,58 +91,61 @@ namespace Illumination
             {
                 LightControl lc = gameObject.AddComponent<LightControl>();
                 lc.Init(atom, lightType);
-                lightControls.Add(atom.uid, lc);
-                lightUISelect.choices = lightControls.Keys.ToList();
-                lightUISelect.val = atom.uid;
+                string uid = atom.uid;
+                lc.uiButton = UILightButton(uid);
+                lightControls.Add(uid, lc);
+                RefreshUI(uid);
             }));
         }
 
-        private void RefreshUI(string key)
+        private void UISpacer(float height, bool rightSide = false)
         {
-            selectTargetButton.button.onClick.RemoveAllListeners();
-            stopAimingButton.button.onClick.RemoveAllListeners();
+            UIDynamic spacer = CreateSpacer(rightSide);
+            spacer.height = height;
+        }
 
-            if(lightControls.ContainsKey(key))
+        private UIDynamicButton UILightButton(string uid)
+        {
+            UIDynamicButton uiButton = CreateButton(uid);
+            uiButton.button.onClick.AddListener(() => {
+                RefreshUI(uid);
+            });
+            return uiButton;
+        }
+
+        private void RefreshUI(string uid)
+        {
+            if(lightControls.ContainsKey(selected))
             {
-                LightControl lc = lightControls[key];
-                StartCoroutine(UpdateStopAimingButtonCo(lc));
+                RemoveToggle(lightControls[selected].enableLookAt);
+            }
+            else
+            {
+                RemoveToggle(dummyEnableAimAtTarget);
+            }
+
+            selected = uid;
+            selectTargetButton.button.onClick.RemoveAllListeners();
+
+            if(lightControls.ContainsKey(uid))
+            {
+                LightControl lc = lightControls[uid];
+                CreateToggle(lc.enableLookAt, true);
                 selectTargetButton.button.interactable = true;
+                lc.enableLookAt.toggle.interactable = lc.target != null;
 
                 selectTargetButton.button.onClick.AddListener(() =>
                 {
                     lc.OnSelectTarget();
-                    StartCoroutine(UpdateStopAimingButtonCo(lc));
-                });
-
-                stopAimingButton.button.onClick.AddListener(() =>
-                {
-                    lc.OnStopAiming();
-                    DisableStopAimingButton();
+                    lc.enableLookAt.toggle.interactable = true;
                 });
             }
             else
             {
                 selectTargetButton.button.interactable = false;
-                DisableStopAimingButton();
+                CreateToggle(dummyEnableAimAtTarget, true);
+                dummyEnableAimAtTarget.toggle.interactable = false;
             }
-        }
-
-        private IEnumerator UpdateStopAimingButtonCo(LightControl lc = null)
-        {
-            while(lc?.GetAimConstrainTargetString() == null)
-            {
-                DisableStopAimingButton();
-                yield return null;
-            }
-
-            stopAimingButton.label = $"Stop aiming at {lc.GetAimConstrainTargetString()}";
-            stopAimingButton.button.interactable = true;
-        }
-
-        private void DisableStopAimingButton()
-        {
-            stopAimingButton.button.interactable = false;
-            stopAimingButton.label = "Stop aiming";
         }
 
         public void OnEnable()
@@ -206,12 +202,12 @@ namespace Illumination
 
         private void AddSuperControllerOnAtomActions()
         {
-            SuperController.singleton.onAtomAddedHandlers += new SuperController.OnAtomAdded(OnAtomAdd);
-            SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnAtomRemove);
-            SuperController.singleton.onAtomUIDRenameHandlers += new SuperController.OnAtomUIDRename(OnAtomRename);
+            SuperController.singleton.onAtomAddedHandlers += new SuperController.OnAtomAdded(OnAddAtom);
+            SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
+            SuperController.singleton.onAtomUIDRenameHandlers += new SuperController.OnAtomUIDRename(OnRenameAtom);
         }
 
-        private void OnAtomAdd(Atom atom)
+        private void OnAddAtom(Atom atom)
         {
             bool wasDisabled = DisableAtomIfIsOtherLight(atom);
             if(wasDisabled)
@@ -220,20 +216,22 @@ namespace Illumination
             }
         }
 
-        private void OnAtomRemove(Atom atom)
+        private void OnRemoveAtom(Atom atom)
         {
             //light atom added by plugin was removed elsewhere
             if(lightControls.ContainsKey(atom.uid))
             {
                 LightControl lc = lightControls[atom.uid];
                 lightControls.Remove(atom.uid);
+                RemoveButton(lc.uiButton);
                 Destroy(lc);
-                bool isSelected = lightUISelect.val == atom.uid;
-                lightUISelect.choices = lightControls.Keys.ToList();
-                if(isSelected)
+
+                if(selected == atom.uid)
                 {
-                    lightUISelect.val = lightUISelect.choices.FirstOrDefault() ?? "";
+                    RemoveToggle(lc.enableLookAt);
                 }
+
+                RefreshUI(lightControls?.Keys.FirstOrDefault() ?? "");
             }
             //other light atom disabled by plugin was removed
             if(disabledLights.Contains(atom))
@@ -242,7 +240,7 @@ namespace Illumination
             }
         }
 
-        private void OnAtomRename(string fromuid, string touid)
+        private void OnRenameAtom(string fromuid, string touid)
         {
             //light atom added by plugin was renamed elsewhere
             if(lightControls.ContainsKey(fromuid))
@@ -250,11 +248,10 @@ namespace Illumination
                 LightControl lc = lightControls[fromuid];
                 lightControls.Remove(fromuid);
                 lightControls.Add(touid, lc);
-                bool isSelected = lightUISelect.val == fromuid;
-                lightUISelect.choices = lightControls.Keys.ToList();
-                if(isSelected)
+                lc.uiButton.label = touid;
+                if(selected == fromuid)
                 {
-                    lightUISelect.val = touid;
+                    RefreshUI(touid);
                 }
             }
         }
@@ -264,7 +261,10 @@ namespace Illumination
             JSONClass json = base.GetJSON(includePhysical, includeAppearance, forceStore);
             json["lightControls"] = new JSONArray();
             lightControls.Values.ToList().ForEach(lc => json["lightControls"].Add(lc.Serialize()));
-            json["selected"] = lightUISelect.val;
+            if(selected != "")
+            {
+                json["selected"] = selected;
+            }
             json["disableOtherLights"].AsBool = disableOtherLights.val;
             needsStore = true;
             return json;
@@ -287,8 +287,10 @@ namespace Illumination
 
             disableOtherLights.val = json["disableOtherLights"].AsBool;
             DisableOtherPointAndSpotLights();
-            lightUISelect.choices = lightControls.Keys.ToList();
-            lightUISelect.val = json["selected"].Value;
+            if(json["selected"] != null)
+            {
+                RefreshUI(json["selected"].Value);
+            }
         }
 
         private void RestoreLightControlFromJSON(JSONClass lightJson)
@@ -323,7 +325,8 @@ namespace Illumination
                     }
                 }
 
-                lc.InitFromSave(atom, target);
+                lc.InitFromSave(atom, target, lightJson["enableLookAt"].AsBool);
+                lc.uiButton = UILightButton(atom.uid);
                 lightControls.Add(atom.uid, lc);
             }
         }
@@ -368,9 +371,9 @@ namespace Illumination
             try
             {
                 lightControls?.Values.ToList().ForEach(it => Destroy(it));
-                SuperController.singleton.onAtomAddedHandlers -= new SuperController.OnAtomAdded(OnAtomAdd);
-                SuperController.singleton.onAtomRemovedHandlers -= new SuperController.OnAtomRemoved(OnAtomRemove);
-                SuperController.singleton.onAtomUIDRenameHandlers -= new SuperController.OnAtomUIDRename(OnAtomRename);
+                SuperController.singleton.onAtomAddedHandlers -= new SuperController.OnAtomAdded(OnAddAtom);
+                SuperController.singleton.onAtomRemovedHandlers -= new SuperController.OnAtomRemoved(OnRemoveAtom);
+                SuperController.singleton.onAtomUIDRenameHandlers -= new SuperController.OnAtomUIDRename(OnRenameAtom);
             }
             catch(Exception e)
             {
