@@ -25,6 +25,8 @@ namespace Illumination
         private JSONStorableString info = new JSONStorableString("Info", "");
         private UIDynamicTextField infoUIField;
 
+        private bool restoringFromJson = false;
+
         public override void Init()
         {
             try
@@ -65,11 +67,39 @@ namespace Illumination
 
                 RefreshUI("");
                 AddSuperControllerOnAtomActions();
+
+                StartCoroutine(AddExistingILAtoms());
             }
             catch(Exception e)
             {
                 Log.Error($"{e}");
             }
+        }
+
+        private IEnumerator AddExistingILAtoms()
+        {
+            yield return new WaitForEndOfFrame();
+
+            while(restoringFromJson)
+            {
+                yield return null;
+            }
+
+            GetSceneAtoms().ForEach(atom =>
+            {
+                if(atom.type != "InvisibleLight" || !atom.uid.StartsWith(atomUidPrefix) || lightControls.ContainsKey(atom.uid))
+                {
+                    return;
+                }
+
+                Light light = atom.GetComponentInChildren<Light>();
+                if(light.type != LightType.Point && light.type != LightType.Spot)
+                {
+                    return;
+                }
+
+                AddExistingILAtomToPlugin(atom, $"{light.type}");
+            });
         }
 
         private void TitleUITextField()
@@ -110,7 +140,7 @@ namespace Illumination
 
             StartCoroutine(Tools.CreateAtomCo("InvisibleLight", $"{atomUidPrefix}InvisibleLight", (atom) =>
             {
-                AddCreatedAtomToPlugin(atom, lightType);
+                AddExistingILAtomToPlugin(atom, lightType);
             }));
         }
 
@@ -149,7 +179,7 @@ namespace Illumination
                         }
 
                         light.SetBoolParamValue("on", true);
-                        AddCreatedAtomToPlugin(atom, lightType);
+                        AddExistingILAtomToPlugin(atom, lightType);
                     })
                 );
             }
@@ -159,7 +189,7 @@ namespace Illumination
             }
         }
 
-        private void AddCreatedAtomToPlugin(Atom atom, string lightType)
+        private void AddExistingILAtomToPlugin(Atom atom, string lightType)
         {
             LightControl lc = gameObject.AddComponent<LightControl>();
             lc.Init(atom, lightType);
@@ -376,6 +406,8 @@ namespace Illumination
 
         public override void RestoreFromJSON(JSONClass json, bool restorePhysical = true, bool restoreAppearance = true, JSONArray presetAtoms = null, bool setMissingToDefault = true)
         {
+            restoringFromJson = true;
+
             base.RestoreFromJSON(json, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
             StartCoroutine(RestoreFromJSONInternal(json));
         }
@@ -399,6 +431,8 @@ namespace Illumination
                     RefreshUI(uid);
                 }
             }
+
+            restoringFromJson = false;
         }
 
         private void RestoreLightControlFromJSON(JSONClass lightJson)
