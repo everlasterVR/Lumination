@@ -37,5 +37,43 @@ namespace Illumination
             }
             return source + Guid.NewGuid();
         }
+
+        public static JSONStorableColor CopyColorStorable(JSONStorableColor source, bool callback)
+        {
+            JSONStorableColor copy = new JSONStorableColor(
+                source.name,
+                source.defaultVal
+            );
+            copy.val = source.val;
+
+            //works only one way - change to source doesn't mirror back to the copy
+            if(callback)
+            {
+                copy.setJSONCallbackFunction = (jc) => source.val = jc.val;
+            }
+
+            return copy;
+        }
+
+        public static JSONStorableFloat CopyFloatStorable(JSONStorableFloat source, bool callback)
+        {
+            JSONStorableFloat copy = new JSONStorableFloat(
+                source.name,
+                source.defaultVal,
+                source.min,
+                source.max,
+                source.constrained
+                //source.slider.interactable
+            );
+            copy.val = source.val;
+
+            //works only one way - change to source doesn't mirror back to the copy
+            if(callback)
+            {
+                copy.setCallbackFunction = (val) => source.val = val;
+            }
+
+            return copy;
+        }
     }
 }

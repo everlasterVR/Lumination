@@ -86,29 +86,28 @@ namespace Illumination
         )
         {
             on = light.GetBoolJSONParam("on");
-            lightColor = light.GetColorJSONParam("color");
+            lightColor = Tools.CopyColorStorable(light.GetColorJSONParam("color"), true);
             enableLookAt = new JSONStorableBool("Enable aiming at target", enableLookAtVal);
             autoIntensity = new JSONStorableBool("Adjust intensity relative to target", autoIntensityVal);
             autoRange = new JSONStorableBool("Adjust range relative to target", autoRangeVal);
             autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to target", autoSpotAngleVal);
 
-            // not using the existing jsonstorable due to different options
             lightType = new JSONStorableStringChooser(
                 "type",
                 new List<string> { "Spot", "Point" },
                 lightTypeVal ?? light.GetStringChooserParamValue("type"),
                 "Light Type",
-                (type) => light.SetStringChooserParamValue("type", type)
+                (val) => light.SetStringChooserParamValue("type", val)
             );
             if(lightTypeVal != null)
             {
                 light.SetStringChooserParamValue("type", lightTypeVal);
             }
 
-            intensity = light.GetFloatJSONParam("intensity");
-            range = light.GetFloatJSONParam("range");
-            spotAngle = light.GetFloatJSONParam("spotAngle");
-            shadowStrength = light.GetFloatJSONParam("shadowStrength");
+            intensity = Tools.CopyFloatStorable(light.GetFloatJSONParam("intensity"), true);
+            range = Tools.CopyFloatStorable(light.GetFloatJSONParam("range"), true);
+            spotAngle = Tools.CopyFloatStorable(light.GetFloatJSONParam("spotAngle"), true);
+            shadowStrength = Tools.CopyFloatStorable(light.GetFloatJSONParam("shadowStrength"), true);
         }
 
         public IEnumerator OnSelectTarget(Action<string> callback)
