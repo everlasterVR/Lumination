@@ -10,9 +10,19 @@ namespace Illumination
 
         public static Color defaultOnColor = new Color(0.0f, 1f, 0.0f, 0.5f);
         public static Color black = UnityEngine.Color.black;
-        public static Color blue = new Color(0.33f, 0.33f, 1f);
+        public static Color turquoise = new Color(0.5f, 1f, 1f);
         public static Color lightGray = new Color(0.75f, 0.75f, 0.75f);
         public static Color white = UnityEngine.Color.white;
+
+        public static string LightButtonLabel(string uid, bool selected = false)
+        {
+            return Bold(Color($"{(selected ? "■" : "  ")}    {uid}", selected ? turquoise : lightGray));
+        }
+
+        public static string SelectTargetButtonLabel(string targetString)
+        {
+            return $"Select target to aim at\n{Italic(Size(targetString, 26))}";
+        }
 
         public static string Color(string text, Color color)
         {

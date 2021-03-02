@@ -22,8 +22,6 @@ namespace Illumination
             // init defaults
             JSONStorable light = lightAtom.GetStorableByID("Light");
             light.SetStringChooserParamValue("type", lightType);
-
-            SetOnColor(UI.white);
         }
 
         public void InitFromSave(Atom lightAtom, FreeControllerV3 targetCtrl, bool enableLookAtVal)
@@ -33,7 +31,6 @@ namespace Illumination
                 this.lightAtom = lightAtom;
                 control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
                 enableLookAt = new JSONStorableBool("Enable aiming at target", enableLookAtVal);
-                SetOnColor(UI.white);
                 if(targetCtrl != null)
                 {
                     control.physicsEnabled = true;
@@ -120,7 +117,7 @@ namespace Illumination
 
         private void OnEnable()
         {
-            SetOnColor(UI.white);
+            SetOnColor(UI.lightGray);
             if(enableLookAt != null)
             {
                 enableLookAt.val = target != null;

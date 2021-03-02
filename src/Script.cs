@@ -11,13 +11,14 @@ namespace Illumination
     {
         private const string version = "<Version>";
         private const string atomUidPrefix = "Illum_";
+        private const string atomType = "InvisibleLight";
         private Dictionary<string, LightControl> lightControls = new Dictionary<string, LightControl>();
 
         private JSONStorableBool disableOtherLights;
         private List<Atom> disabledLights = new List<Atom>();
 
         private UIDynamicButton selectTargetButton;
-        private string selected = "";
+        private string selectedUid = "";
 
         private UIDynamicButton removeLightButton;
         private UIDynamic leftUISpacer;
@@ -120,7 +121,7 @@ namespace Illumination
 
             GetSceneAtoms().ForEach(atom =>
             {
-                if(atom.type != "InvisibleLight" || !atom.uid.StartsWith(atomUidPrefix) || lightControls.ContainsKey(atom.uid))
+                if(atom.type != atomType || !atom.uid.StartsWith(atomUidPrefix) || lightControls.ContainsKey(atom.uid))
                 {
                     return;
                 }
@@ -171,7 +172,7 @@ namespace Illumination
                 return;
             }
 
-            StartCoroutine(Tools.CreateAtomCo("InvisibleLight", $"{atomUidPrefix}InvisibleLight", (atom) =>
+            StartCoroutine(Tools.CreateAtomCo(atomType, $"{atomUidPrefix}{atomType}", (atom) =>
             {
                 AddExistingILAtomToPlugin(atom, "Spot");
             }));
@@ -185,15 +186,15 @@ namespace Illumination
                     new SuperController.SelectControllerCallback(targetCtrl =>
                     {
                         Atom atom = targetCtrl.containingAtom;
-                        if(atom.type != "InvisibleLight")
+                        if(atom.type != atomType)
                         {
-                            Log.Message("Selected atom is not an InvisibleLight atom!");
+                            Log.Message($"Selected atom is not an {atomType} atom!");
                             return;
                         }
 
                         if(lightControls.ContainsKey(atom.uid))
                         {
-                            Log.Message("Selected InvisibleLight is already added!");
+                            Log.Message($"Selected {atomType} is already added!");
                             return;
                         }
 
@@ -250,9 +251,9 @@ namespace Illumination
         private void RemoveSelectedInvisibleLight()
         {
             //if(lightControls != null && lightControls.ContainsKey(selected))
-            if(lightControls.ContainsKey(selected))
+            if(lightControls.ContainsKey(selectedUid))
             {
-                SuperController.singleton.RemoveAtom(lightControls[selected].lightAtom);
+                SuperController.singleton.RemoveAtom(lightControls[selectedUid].lightAtom);
             }
         }
 
@@ -272,9 +273,10 @@ namespace Illumination
         private UIDynamicButton UILightButton(string uid)
         {
             RemoveSpacer(leftUISpacer);
-            UIDynamicButton uiButton = CreateButton(UI.Color(uid, UI.lightGray));
+            UIDynamicButton uiButton = CreateButton(UI.LightButtonLabel(uid));
             UI.DecreaseAvailableHeight(uiButton.height);
             uiButton.buttonColor = UI.black;
+            uiButton.buttonText.alignment = TextAnchor.MiddleLeft;
             leftUISpacer = CreateSpacer();
             leftUISpacer.height = UI.GetAvailableHeight();
             uiButton.button.onClick.AddListener(() => {
@@ -285,31 +287,31 @@ namespace Illumination
 
         private void RefreshUI(string uid)
         {
-            if(lightControls.ContainsKey(selected))
+            if(lightControls.ContainsKey(selectedUid))
             {
-                LightControl selectedLc = lightControls[selected];
-                selectedLc.uiButton.label = UI.Color(selected, UI.lightGray);
-                selectedLc.SetOnColor(UI.white);
+                LightControl selectedLc = lightControls[selectedUid];
+                selectedLc.uiButton.label = UI.LightButtonLabel(selectedUid);
+                selectedLc.SetOnColor(UI.lightGray);
                 RemoveToggle(selectedLc.enableLookAt);
             }
 
             selectTargetButton.button.onClick.RemoveAllListeners();
-            selected = uid;
+            selectedUid = uid;
 
             if(lightControls.ContainsKey(uid))
             {
                 LightControl lc = lightControls[uid];
-                lc.uiButton.label =  UI.Bold(UI.Color(uid, UI.blue));
+                lc.uiButton.label = UI.LightButtonLabel(uid, true);
                 CreateToggle(lc.enableLookAt, true);
                 selectTargetButton.button.interactable = true;
-                selectTargetButton.label = $"Select target to aim at\n{UI.Italic(UI.Size(lc.GetTargetString(), 26))}";
+                selectTargetButton.label = UI.SelectTargetButtonLabel(lc.GetTargetString());
                 lc.enableLookAt.toggle.interactable = lc.target != null;
 
                 selectTargetButton.button.onClick.AddListener(() =>
                 {
                     StartCoroutine(lc.OnSelectTarget((targetString) =>
                     {
-                        selectTargetButton.label = $"Select target to aim at\n{UI.Italic(UI.Size(targetString, 26))}";
+                        selectTargetButton.label = UI.SelectTargetButtonLabel(targetString);
                     }));
                     lc.enableLookAt.toggle.interactable = true;
                 });
@@ -346,7 +348,7 @@ namespace Illumination
                 return false;
             }
 
-            if(!atom.on || atom.type != "InvisibleLight" || atom.uid.StartsWith(atomUidPrefix) || lightControls.ContainsKey(atom.uid))
+            if(!atom.on || atom.type != atomType || atom.uid.StartsWith(atomUidPrefix) || lightControls.ContainsKey(atom.uid))
             {
                 return false;
             }
@@ -385,7 +387,7 @@ namespace Illumination
             bool wasDisabled = DisableAtomIfIsOtherLight(atom);
             if(wasDisabled)
             {
-                Log.Message($"New InvisibleLight '{atom.uid}' was automatically disabled because 'Disable other point and spot lights' is checked in plugin UI.");
+                Log.Message($"New {atomType} '{atom.uid}' was automatically disabled because 'Disable other point and spot lights' is checked in plugin UI.");
             }
         }
 
@@ -402,7 +404,7 @@ namespace Illumination
 
                 Destroy(lc);
 
-                if(selected == atom.uid)
+                if(selectedUid == atom.uid)
                 {
                     RemoveToggle(lc.enableLookAt);
                 }
@@ -431,7 +433,7 @@ namespace Illumination
                 lightControls.Remove(fromuid);
                 lightControls.Add(touid, lc);
                 lc.uiButton.label = touid;
-                if(selected == fromuid)
+                if(selectedUid == fromuid)
                 {
                     RefreshUI(touid);
                 }
@@ -443,9 +445,9 @@ namespace Illumination
             JSONClass json = base.GetJSON(includePhysical, includeAppearance, forceStore);
             json["lightControls"] = new JSONArray();
             lightControls.Values.ToList().ForEach(lc => json["lightControls"].Add(lc.Serialize()));
-            if(selected != "")
+            if(selectedUid != "")
             {
-                json["selected"] = selected;
+                json["selected"] = selectedUid;
             }
             json["disableOtherLights"].AsBool = disableOtherLights.val;
             needsStore = true;
@@ -552,9 +554,9 @@ namespace Illumination
         {
             try
             {
-                if(lightControls != null && lightControls.ContainsKey(selected))
+                if(lightControls != null && lightControls.ContainsKey(selectedUid))
                 {
-                    lightControls[selected].SetOnColor(UITransform.gameObject.activeInHierarchy ? UI.blue : UI.white);
+                    lightControls[selectedUid].SetOnColor(UITransform.gameObject.activeInHierarchy ? UI.turquoise : UI.lightGray);
                 }
             }
             catch(Exception e)
