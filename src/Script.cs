@@ -36,73 +36,10 @@ namespace Illumination
                     return;
                 }
 
-                //left side UI
-
-                TitleUITextField();
-                DisableOtherLightsUIToggle();
-
-                UIDynamicButton addSpotLightButton = CreateButton("Add new spotlight");
-                addSpotLightButton.button.onClick.AddListener(() => AddNewInvisibleLight());
-                UI.DecreaseAvailableHeight(addSpotLightButton.height);
-
-                UIDynamicButton addLightFromSceneButton = CreateButton("Add light from scene");
-                addLightFromSceneButton.button.onClick.AddListener(() => AddSelectedInvisibleLight());
-                UI.DecreaseAvailableHeight(addLightFromSceneButton.height);
-
-                removeLightButton = CreateButton("Remove selected atom");
-                removeLightButton.button.onClick.AddListener(() => RemoveSelectedInvisibleLight());
-                UI.DecreaseAvailableHeight(removeLightButton.height);
-
-                UISpacer(15f);
-
-                leftUISpacer = CreateSpacer();
-                leftUISpacer.height = UI.GetAvailableHeight();
-
-                //right side UI
-
-                selectTargetButton = CreateButton("Select target to aim at", true);
-                selectTargetButton.height = 100f;
-
-                JSONStorableBool enableAimAtTarget = new JSONStorableBool("Enable aiming at target", false);
-                UIDynamicToggle enableAimAtTargetToggle = CreateToggle(enableAimAtTarget, true);
-                JSONStorableBool autoIntensity = new JSONStorableBool("Adjust intensity relative to target", false);
-                UIDynamicToggle autoIntensityToggle = CreateToggle(autoIntensity, true);
-                JSONStorableBool autoRange = new JSONStorableBool("Adjust range relative to target", false);
-                UIDynamicToggle autoRangeToggle = CreateToggle(autoRange, true);
-                JSONStorableBool autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to target", false);
-                UIDynamicToggle autoSpotAngleToggle = CreateToggle(autoSpotAngle, true);
-
-                UISpacer(15f, true);
-
-                JSONStorableFloat intensity = new JSONStorableFloat("Intensity", 1, 0.1f, 5);
-                UIDynamicSlider intensitySlider = CreateSlider(intensity, true);
-                intensitySlider.valueFormat = "F2";
-
-                JSONStorableFloat range = new JSONStorableFloat("Range", 5, 1, 25);
-                UIDynamicSlider rangeSlider = CreateSlider(range, true);
-                rangeSlider.valueFormat = "F1";
-
-                UIDynamicPopup lightType = CreatePopup(new JSONStorableStringChooser(
-                    "lightType",
-                    new List<string> { "Spot", "Point" },
-                    "Spot",
-                    "Light Type"
-                ), true);
-
-                JSONStorableFloat spotAngle = new JSONStorableFloat("Spot angle", 80, 10, 150);
-                UIDynamicSlider spotAngleSlider = CreateSlider(spotAngle, true);
-                spotAngleSlider.valueFormat = "F0";
-
-                JSONStorableFloat shadowStrength = new JSONStorableFloat("Shadow strength", 0.2f, 0, 1);
-                UIDynamicSlider shadowStrengthSlider = CreateSlider(shadowStrength, true);
-                shadowStrengthSlider.valueFormat = "F2";
-
-                //rest
-
-                RefreshUI("");
+                InitUILeft();
+                InitUIRight();
                 AddSuperControllerOnAtomActions();
-
-                StartCoroutine(AddExistingILAtoms());
+                StartCoroutine(AddExistingILAtoms((uid) => RefreshUI(uid)));
             }
             catch(Exception e)
             {
@@ -110,7 +47,74 @@ namespace Illumination
             }
         }
 
-        private IEnumerator AddExistingILAtoms()
+        private void InitUILeft()
+        {
+            TitleUITextField();
+
+            UIDynamicButton addSpotLightButton = CreateButton("Add new spotlight");
+            addSpotLightButton.buttonColor = UI.lightGreen;
+            addSpotLightButton.button.onClick.AddListener(() => AddNewInvisibleLight());
+            UI.DecreaseAvailableHeight(addSpotLightButton.height);
+
+            UIDynamicButton addLightFromSceneButton = CreateButton("Add light from scene");
+            addLightFromSceneButton.buttonColor = UI.lightGreen;
+            addLightFromSceneButton.button.onClick.AddListener(() => AddSelectedInvisibleLight());
+            UI.DecreaseAvailableHeight(addLightFromSceneButton.height);
+
+            removeLightButton = CreateButton("Remove selected atom");
+            removeLightButton.buttonColor = UI.pink;
+            removeLightButton.button.onClick.AddListener(() => RemoveSelectedInvisibleLight());
+            UI.DecreaseAvailableHeight(removeLightButton.height);
+
+            DisableOtherLightsUIToggle();
+
+            UISpacer(15f);
+
+            leftUISpacer = CreateSpacer();
+            leftUISpacer.height = UI.GetAvailableHeight();
+        }
+
+        private void InitUIRight()
+        {
+            selectTargetButton = CreateButton("Select target to aim at", true);
+            selectTargetButton.height = 100f;
+
+            JSONStorableBool enableAimAtTarget = new JSONStorableBool("Enable aiming at target", false);
+            UIDynamicToggle enableAimAtTargetToggle = CreateToggle(enableAimAtTarget, true);
+            JSONStorableBool autoIntensity = new JSONStorableBool("Adjust intensity relative to target", false);
+            UIDynamicToggle autoIntensityToggle = CreateToggle(autoIntensity, true);
+            JSONStorableBool autoRange = new JSONStorableBool("Adjust range relative to target", false);
+            UIDynamicToggle autoRangeToggle = CreateToggle(autoRange, true);
+            JSONStorableBool autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to target", false);
+            UIDynamicToggle autoSpotAngleToggle = CreateToggle(autoSpotAngle, true);
+
+            UISpacer(15f, true);
+
+            JSONStorableFloat intensity = new JSONStorableFloat("Intensity", 1, 0.1f, 5);
+            UIDynamicSlider intensitySlider = CreateSlider(intensity, true);
+            intensitySlider.valueFormat = "F2";
+
+            JSONStorableFloat range = new JSONStorableFloat("Range", 5, 1, 25);
+            UIDynamicSlider rangeSlider = CreateSlider(range, true);
+            rangeSlider.valueFormat = "F1";
+
+            UIDynamicPopup lightType = CreatePopup(new JSONStorableStringChooser(
+                "lightType",
+                new List<string> { "Spot", "Point" },
+                "Spot",
+                "Light Type"
+            ), true);
+
+            JSONStorableFloat spotAngle = new JSONStorableFloat("Spot angle", 80, 10, 150);
+            UIDynamicSlider spotAngleSlider = CreateSlider(spotAngle, true);
+            spotAngleSlider.valueFormat = "F0";
+
+            JSONStorableFloat shadowStrength = new JSONStorableFloat("Shadow strength", 0.2f, 0, 1);
+            UIDynamicSlider shadowStrengthSlider = CreateSlider(shadowStrength, true);
+            shadowStrengthSlider.valueFormat = "F2";
+        }
+
+        private IEnumerator AddExistingILAtoms(Action<string> callback)
         {
             yield return new WaitForEndOfFrame();
 
@@ -119,21 +123,21 @@ namespace Illumination
                 yield return null;
             }
 
-            GetSceneAtoms().ForEach(atom =>
-            {
-                if(atom.type != atomType || !atom.uid.StartsWith(atomUidPrefix) || lightControls.ContainsKey(atom.uid))
+            GetSceneAtoms()
+                .Where(atom => atom.type == atomType && atom.uid.StartsWith(atomUidPrefix) && !lightControls.ContainsKey(atom.uid))
+                .OrderBy(atom => atom.uid).ToList()
+                .ForEach(atom =>
                 {
-                    return;
-                }
+                    Light light = atom.GetComponentInChildren<Light>();
+                    if(light.type != LightType.Point && light.type != LightType.Spot)
+                    {
+                        return;
+                    }
 
-                Light light = atom.GetComponentInChildren<Light>();
-                if(light.type != LightType.Point && light.type != LightType.Spot)
-                {
-                    return;
-                }
+                    AddExistingILAtomToPlugin(atom, $"{light.type}");
+                });
 
-                AddExistingILAtomToPlugin(atom, $"{light.type}");
-            });
+            callback(lightControls?.Keys.FirstOrDefault() ?? "");
         }
 
         private void TitleUITextField()
@@ -174,7 +178,8 @@ namespace Illumination
 
             StartCoroutine(Tools.CreateAtomCo(atomType, $"{atomUidPrefix}{atomType}", (atom) =>
             {
-                AddExistingILAtomToPlugin(atom, "Spot");
+                string uid = AddExistingILAtomToPlugin(atom, "Spot");
+                RefreshUI(uid);
             }));
         }
 
@@ -213,7 +218,8 @@ namespace Illumination
                         }
 
                         light.SetBoolParamValue("on", true);
-                        AddExistingILAtomToPlugin(atom, lightType);
+                        string uid = AddExistingILAtomToPlugin(atom, lightType);
+                        RefreshUI(uid);
                     })
                 );
             }
@@ -223,7 +229,7 @@ namespace Illumination
             }
         }
 
-        private void AddExistingILAtomToPlugin(Atom atom, string lightType)
+        private string AddExistingILAtomToPlugin(Atom atom, string lightType)
         {
             LightControl lc = gameObject.AddComponent<LightControl>();
             lc.Init(atom, lightType);
@@ -236,7 +242,6 @@ namespace Illumination
             }
             lc.uiButton = UILightButton(uid);
             lightControls.Add(uid, lc);
-            RefreshUI(uid);
 
             if(lightControls.Count > 0)
             {
@@ -246,6 +251,8 @@ namespace Illumination
             }
 
             removeLightButton.button.interactable = true;
+
+            return uid;
         }
 
         private void RemoveSelectedInvisibleLight()

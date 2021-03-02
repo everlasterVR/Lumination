@@ -10,8 +10,10 @@ namespace Illumination
 
         public static Color defaultOnColor = new Color(0.0f, 1f, 0.0f, 0.5f);
         public static Color black = UnityEngine.Color.black;
-        public static Color turquoise = new Color(0.5f, 1f, 1f);
         public static Color lightGray = new Color(0.75f, 0.75f, 0.75f);
+        public static Color lightGreen = new Color(0.75f, 1f, 0.75f);
+        public static Color pink = new Color(1f, 0.75f, 0.75f);
+        public static Color turquoise = new Color(0.5f, 1f, 1f);
         public static Color white = UnityEngine.Color.white;
 
         public static string LightButtonLabel(string uid, bool selected = false)

@@ -17,6 +17,7 @@ namespace Illumination
         {
             this.lightAtom = lightAtom;
             control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+            SetOnColor(UI.lightGray);
             enableLookAt = new JSONStorableBool("Enable aiming at target", false);
 
             // init defaults
