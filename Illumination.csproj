@@ -79,7 +79,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\LightControl.cs" />
-    <Compile Include="src\UI.cs" />
+    <Compile Include="src\Utils\UI.cs" />
     <Compile Include="src\Script.cs" />
     <Compile Include="src\Utils\Tools.cs" />
     <Compile Include="src\Utils\Log.cs" />
