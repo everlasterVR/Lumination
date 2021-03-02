@@ -347,6 +347,7 @@ namespace Illumination
 
             colorPickerSpacer = UISpacer(10f);
             lightColorPicker = CreateColorPicker(lc.lightColor);
+            lightColorPicker.label = "Light color";
             selectTargetButton = CreateButton(UI.SelectTargetButtonLabel(lc.GetTargetString()), true);
             selectTargetButton.height = 100f;
             enableLookAtToggle = CreateToggle(lc.enableLookAt, true);
@@ -357,9 +358,15 @@ namespace Illumination
             lightTypeSpacer = UISpacer(10f, true);
             lightTypePopup = CreatePopup(lc.lightType, true);
             intensitySlider = CreateSlider(lc.intensity, true);
+            intensitySlider.valueFormat = "F3";
+            intensitySlider.label = "Intensity";
             rangeSlider = CreateSlider(lc.range, true);
+            rangeSlider.label = "Range";
             spotAngleSlider = CreateSlider(lc.spotAngle, true);
+            spotAngleSlider.label = "Spot angle";
             shadowStrengthSlider = CreateSlider(lc.shadowStrength, true);
+            shadowStrengthSlider.valueFormat = "F3";
+            shadowStrengthSlider.label = "Shadow strength";
 
             selectTargetButton.button.onClick.AddListener(() => StartCoroutine(lc.OnSelectTarget((targetString) =>
             {
