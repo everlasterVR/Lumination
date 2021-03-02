@@ -479,27 +479,8 @@ namespace Illumination
             {
                 LightControl lc = gameObject.AddComponent<LightControl>();
 
-                FreeControllerV3 target = null;
-                if(lightJson["aimingAtAtomUid"] != null && lightJson["aimingAtControl"] != null)
-                {
-                    string aimingAtAtomUid = lightJson["aimingAtAtomUid"].Value;
-                    string aimingAtControl = lightJson["aimingAtControl"].Value;
-                    Atom aimingAtAtom = GetAtomById(aimingAtAtomUid);
-                    target = aimingAtAtom?.gameObject
-                        .GetComponentsInChildren<FreeControllerV3>()
-                        .Where(it => it.name == aimingAtControl)
-                        .FirstOrDefault();
-
-                    if(target == null)
-                    {
-                        Log.Message($"Unable to point light atom '{atomUid}' at atom " +
-                            $"'{aimingAtAtomUid}' target control '{aimingAtControl}': " +
-                            $"target mentioned in saved JSON but not found in scene.");
-                    }
-                }
-
                 //duplicated from AddExistingILAtomToPlugin
-                lc.InitFromSave(atom, target, lightJson["enableLookAt"].AsBool);
+                lc.InitFromJson(atom, lightJson);
                 string uid = atom.uid;
                 lc.uiButton = UILightButton(uid);
                 lightControls.Add(uid, lc);

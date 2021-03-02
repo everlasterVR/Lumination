@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Illumination
@@ -29,25 +30,44 @@ namespace Illumination
             light = lightAtom.GetStorableByID("Light");
             control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
             SetOnColor(UI.lightGray);
-            InitStorables();
-
-            // init defaults
-            light.SetStringChooserParamValue("type", lightType);
+            InitStorables(lightTypeVal: lightType);
         }
 
-        public void InitFromSave(Atom lightAtom, FreeControllerV3 targetCtrl, bool enableLookAtVal)
+        public void InitFromJson(Atom lightAtom, JSONClass json)
         {
             try
             {
                 light = lightAtom.GetStorableByID("Light");
                 control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
-                //TODO read from json
-                InitStorables();
-                enableLookAt = new JSONStorableBool("Enable aiming at target", enableLookAtVal);
-                if(targetCtrl != null)
+                InitStorables(
+                    json["enableLookAt"].AsBool,
+                    json["autoIntensity"].AsBool,
+                    json["autoRange"].AsBool,
+                    json["autoSpotAngle"].AsBool
+                );
+
+                FreeControllerV3 target = null;
+                if(json["aimingAtAtomUid"] != null && json["aimingAtControl"] != null)
                 {
-                    control.physicsEnabled = true;
-                    target = targetCtrl;
+                    string aimingAtAtomUid = json["aimingAtAtomUid"].Value;
+                    string aimingAtControl = json["aimingAtControl"].Value;
+                    Atom aimingAtAtom = SuperController.singleton.GetAtomByUid(aimingAtAtomUid);
+                    target = aimingAtAtom?.gameObject
+                        .GetComponentsInChildren<FreeControllerV3>()
+                        .Where(it => it.name == aimingAtControl)
+                        .FirstOrDefault();
+
+                    if(target == null)
+                    {
+                        Log.Message($"Unable to point '{lightAtom.uid}' at atom " +
+                            $"'{aimingAtAtomUid}' target control '{aimingAtControl}': " +
+                            $"target mentioned in saved JSON but not found in scene.");
+                    }
+                    else
+                    {
+                        control.physicsEnabled = true;
+                        this.target = target;
+                    }
                 }
             }
             catch(Exception e)
@@ -147,7 +167,10 @@ namespace Illumination
         {
             JSONClass json = new JSONClass();
             json["atomUid"] = light.containingAtom.uid;
-            //json["enableLookAt"].AsBool = enableLookAt.val;
+            json["enableLookAt"].AsBool = enableLookAt.val;
+            json["autoIntensity"].AsBool = autoIntensity.val;
+            json["autoRange"].AsBool = autoRange.val;
+            json["autoSpotAngle"].AsBool = autoSpotAngle.val;
             if(target != null)
             {
                 json["aimingAtAtomUid"] = target.containingAtom.uid;
