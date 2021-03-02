@@ -22,9 +22,19 @@ namespace Illumination
         private UIDynamicButton removeLightButton;
         private UIDynamic leftUISpacer;
 
+        private UIDynamicColorPicker lightColorPicker;
         private UIDynamicButton selectTargetButton;
+        private UIDynamicToggle enableLookAtToggle;
+        private UIDynamicToggle autoIntensityToggle;
+        private UIDynamicToggle autoRangeToggle;
+        private UIDynamicToggle autoSpotAngleToggle;
+        private UIDynamicSlider intensitySlider;
+        private UIDynamicSlider rangeSlider;
+        private UIDynamicPopup lightTypePopup;
+        private UIDynamicSlider spotAngleSlider;
+        private UIDynamicSlider shadowStrengthSlider;
 
-        private bool restoringFromJson = false;
+        private bool? restoringFromJson;
 
         public override void Init()
         {
@@ -77,7 +87,7 @@ namespace Illumination
         {
             yield return new WaitForEndOfFrame();
 
-            while(restoringFromJson)
+            while(restoringFromJson.HasValue && restoringFromJson.Value)
             {
                 yield return null;
             }
@@ -96,7 +106,10 @@ namespace Illumination
                     AddExistingILAtomToPlugin(atom, $"{light.type}");
                 });
 
-            callback(lightControls?.Keys.FirstOrDefault() ?? "");
+            if(!restoringFromJson.HasValue)
+            {
+                callback(lightControls?.Keys.FirstOrDefault() ?? "");
+            }
         }
 
         private void TitleUITextField()
@@ -242,12 +255,12 @@ namespace Illumination
             selectedUid = uid;
             if(!lightControls.ContainsKey(uid))
             {
-                RemoveButton(selectTargetButton);
                 removeLightButton.button.interactable = false;
                 return;
             }
 
             CreateLightControlUI(uid);
+            removeLightButton.button.interactable = true;
         }
 
         private void DestroyLightControlUI(string uid)
@@ -257,21 +270,21 @@ namespace Illumination
             lc.uiButton.label = UI.LightButtonLabel(uid);
             lc.SetOnColor(UI.lightGray);
 
+            //color picker height = 380
             UI.IncreaseAvailableHeight(380);
             leftUISpacer.height += 380 + 15;
+
             RemoveColorPicker(lc.lightColor);
-
-            selectTargetButton?.button.onClick.RemoveAllListeners();
-
-            RemoveToggle(lc.enableLookAt);
-            RemoveToggle(lc.autoIntensity);
-            RemoveToggle(lc.autoRange);
-            RemoveToggle(lc.autoSpotAngle);
-            RemoveSlider(lc.intensity);
-            RemoveSlider(lc.range);
-            RemovePopup(lc.lightType);
-            RemoveSlider(lc.spotAngle);
-            RemoveSlider(lc.shadowStrength);
+            RemoveButton(selectTargetButton);
+            RemoveToggle(enableLookAtToggle);
+            RemoveToggle(autoIntensityToggle);
+            RemoveToggle(autoRangeToggle);
+            RemoveToggle(autoSpotAngleToggle);
+            RemoveSlider(intensitySlider);
+            RemoveSlider(rangeSlider);
+            RemovePopup(lightTypePopup);
+            RemoveSlider(spotAngleSlider);
+            RemoveSlider(shadowStrengthSlider);
         }
 
         private void CreateLightControlUI(string uid)
@@ -279,29 +292,23 @@ namespace Illumination
             LightControl lc = lightControls[uid];
             lc.uiButton.label = UI.LightButtonLabel(uid, true);
 
-            CreateColorPicker(lc.lightColor);
+            //color picker height = 380
             UI.DecreaseAvailableHeight(380);
             leftUISpacer.height -= 380 + 15;
 
-            if(selectTargetButton == null)
-            {
-                selectTargetButton = CreateButton(UI.SelectTargetButtonLabel(""), true);
-                selectTargetButton.height = 100;
-            }
-            else
-            {
-                selectTargetButton.label = UI.SelectTargetButtonLabel(lc.GetTargetString());
-            }
+            lightColorPicker = CreateColorPicker(lc.lightColor);
 
-            CreateToggle(lc.enableLookAt, true);
-            CreateToggle(lc.autoIntensity, true);
-            CreateToggle(lc.autoRange, true);
-            CreateToggle(lc.autoSpotAngle, true);
-            CreateSlider(lc.intensity, true);
-            CreateSlider(lc.range, true);
-            CreatePopup(lc.lightType, true);
-            CreateSlider(lc.spotAngle, true);
-            CreateSlider(lc.shadowStrength, true);
+            selectTargetButton = CreateButton(UI.SelectTargetButtonLabel(lc.GetTargetString()), true);
+            selectTargetButton.height = 100f;
+            enableLookAtToggle = CreateToggle(lc.enableLookAt, true);
+            autoIntensityToggle = CreateToggle(lc.autoIntensity, true);
+            autoRangeToggle = CreateToggle(lc.autoRange, true);
+            autoSpotAngleToggle = CreateToggle(lc.autoSpotAngle, true);
+            intensitySlider = CreateSlider(lc.intensity, true);
+            rangeSlider = CreateSlider(lc.range, true);
+            lightTypePopup = CreatePopup(lc.lightType, true);
+            spotAngleSlider = CreateSlider(lc.spotAngle, true);
+            shadowStrengthSlider = CreateSlider(lc.shadowStrength, true);
 
             selectTargetButton.button.onClick.AddListener(() => StartCoroutine(lc.OnSelectTarget((targetString) =>
             {
@@ -310,8 +317,6 @@ namespace Illumination
             })));
 
             lc.enableLookAt.toggle.interactable = lc.target != null;
-
-            removeLightButton.button.interactable = true;
         }
 
         public void OnEnable()
@@ -454,14 +459,7 @@ namespace Illumination
 
             disableOtherLights.val = json["disableOtherLights"].AsBool;
             DisableOtherPointAndSpotLights();
-            if(json["selected"] != null)
-            {
-                string uid = json["selected"].Value;
-                if(lightControls.ContainsKey(uid))
-                {
-                    RefreshUI(uid);
-                }
-            }
+            RefreshUI(json["selected"]?.Value ?? "");
 
             restoringFromJson = false;
         }
@@ -484,7 +482,6 @@ namespace Illumination
                 string uid = atom.uid;
                 lc.uiButton = UILightButton(uid);
                 lightControls.Add(uid, lc);
-                RefreshUI(uid);
             }
         }
 
