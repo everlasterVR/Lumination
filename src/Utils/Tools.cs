@@ -46,10 +46,17 @@ namespace Illumination
             );
             copy.val = source.val;
 
-            //works only one way - change to source doesn't mirror back to the copy
             if(callback)
             {
                 copy.setJSONCallbackFunction = (jc) => source.val = jc.val;
+                if(source.setJSONCallbackFunction == null)
+                {
+                    source.setJSONCallbackFunction = (jc) => copy.val = jc.val;
+                }
+                else
+                {
+                    Log.Message($"JSONStorableColor {source.name} already has a setJSONCallbackFunction!", nameof(Tools));
+                }
             }
 
             return copy;
@@ -67,10 +74,17 @@ namespace Illumination
             );
             copy.val = source.val;
 
-            //works only one way - change to source doesn't mirror back to the copy
             if(callback)
             {
-                copy.setCallbackFunction = (val) => source.val = val;
+                copy.setJSONCallbackFunction = (jc) => source.val = jc.val;
+                if(source.setJSONCallbackFunction == null)
+                {
+                    source.setJSONCallbackFunction = (jc) => copy.val = jc.val;
+                }
+                else
+                {
+                    Log.Message($"JSONStorableFloat {source.name} already has a setJSONCallbackFunction!", nameof(Tools));
+                }
             }
 
             return copy;
