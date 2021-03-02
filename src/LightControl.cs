@@ -89,7 +89,8 @@ namespace Illumination
             bool waiting = true;
 
             SuperController.singleton.SelectModeControllers(
-                new SuperController.SelectControllerCallback(targetCtrl => {
+                new SuperController.SelectControllerCallback(targetCtrl =>
+                {
                     waiting = false;
                     target = targetCtrl;
                     enableLookAt.val = true;

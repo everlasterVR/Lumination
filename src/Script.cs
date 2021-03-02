@@ -225,7 +225,8 @@ namespace Illumination
             uiButton.buttonText.alignment = TextAnchor.MiddleLeft;
             leftUISpacer = CreateSpacer();
             leftUISpacer.height = UI.GetAvailableHeight();
-            uiButton.button.onClick.AddListener(() => {
+            uiButton.button.onClick.AddListener(() =>
+            {
                 RefreshUI(uid);
             });
             return uiButton;
