@@ -4,10 +4,6 @@ namespace Illumination
 {
     public static class UI
     {
-        private const float gap = 15f;
-        private static float availableHeightLeft = 1200f;
-        private static float availableHeightRight = 1200f;
-
         public static Color defaultOnColor = new Color(0.0f, 1f, 0.0f, 0.5f);
         public static Color defaultPluginBgColor = new Color32(193, 168, 203, 255);
 
@@ -46,35 +42,6 @@ namespace Illumination
         public static string Size(string text, int size)
         {
             return $"<size={size}>{text}</size>";
-        }
-
-        public static void DecreaseAvailableHeight(float amount, bool rightSide = false)
-        {
-            if(rightSide)
-            {
-                availableHeightRight -= (amount + gap);
-            }
-            else
-            {
-                availableHeightLeft -= (amount + gap);
-            }
-        }
-
-        public static void IncreaseAvailableHeight(float amount, bool rightSide = false)
-        {
-            if(rightSide)
-            {
-                availableHeightRight += amount + gap;
-            }
-            else
-            {
-                availableHeightLeft += amount + gap;
-            }
-        }
-
-        public static float GetAvailableHeight(bool rightSide = false)
-        {
-            return rightSide ? availableHeightRight : availableHeightLeft;
         }
     }
 }

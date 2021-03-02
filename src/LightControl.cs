@@ -19,9 +19,9 @@ namespace Illumination
         public JSONStorableBool autoIntensity;
         public JSONStorableBool autoRange;
         public JSONStorableBool autoSpotAngle;
+        public JSONStorableStringChooser lightType;
         public JSONStorableFloat intensity;
         public JSONStorableFloat range;
-        public JSONStorableStringChooser lightType;
         public JSONStorableFloat spotAngle;
         public JSONStorableFloat shadowStrength;
 
@@ -85,20 +85,26 @@ namespace Illumination
         )
         {
             lightColor = light.GetColorJSONParam("color");
-
             enableLookAt = new JSONStorableBool("Enable aiming at target", enableLookAtVal);
             autoIntensity = new JSONStorableBool("Adjust intensity relative to target", autoIntensityVal);
             autoRange = new JSONStorableBool("Adjust range relative to target", autoRangeVal);
             autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to target", autoSpotAngleVal);
 
-            intensity = light.GetFloatJSONParam("intensity");
-            range = light.GetFloatJSONParam("range");
-            lightType = light.GetStringChooserJSONParam("type");
-            lightType.choices = new List<string> { "Spot", "Point" };
+            // not using the existing jsonstorable due to different options
+            lightType = new JSONStorableStringChooser(
+                "type",
+                new List<string> { "Spot", "Point" },
+                lightTypeVal ?? light.GetStringChooserParamValue("type"),
+                "Light Type",
+                (type) => light.SetStringChooserParamValue("type", type)
+            );
             if(lightTypeVal != null)
             {
-                lightType.val = lightTypeVal;
+                light.SetStringChooserParamValue("type", lightTypeVal);
             }
+
+            intensity = light.GetFloatJSONParam("intensity");
+            range = light.GetFloatJSONParam("range");
             spotAngle = light.GetFloatJSONParam("spotAngle");
             shadowStrength = light.GetFloatJSONParam("shadowStrength");
         }
