@@ -211,7 +211,7 @@ namespace Illumination
             LightControl lc = gameObject.AddComponent<LightControl>();
             lc.Init(atom, lightType);
             string uid = atom.uid;
-            lc.uiButton = UILightButton(uid);
+            lc.uiButton = UILightButton(uid, lc.on.val);
             lightControls.Add(uid, lc);
             return uid;
         }
@@ -232,9 +232,9 @@ namespace Illumination
             return spacer;
         }
 
-        private UIDynamicButton UILightButton(string uid)
+        private UIDynamicButton UILightButton(string uid, bool on)
         {
-            UIDynamicButton uiButton = CreateButton(UI.LightButtonLabel(uid));
+            UIDynamicButton uiButton = CreateButton(UI.LightButtonLabel(uid, on));
             uiButton.buttonColor = UI.black;
             uiButton.buttonText.alignment = TextAnchor.MiddleLeft;
             uiButton.button.onClick.AddListener(() =>
@@ -242,6 +242,10 @@ namespace Illumination
                 if(selectedUid != uid)
                 {
                     RefreshUI(uid);
+                }
+                else
+                {
+                    ToggleLightOn(uid);
                 }
             });
             return uiButton;
@@ -273,7 +277,7 @@ namespace Illumination
             {
                 LightControl lc = lightControls[uid];
 
-                lc.uiButton.label = UI.LightButtonLabel(uid);
+                lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val);
                 lc.SetOnColor(UI.lightGray);
 
                 if(colorPickerSpacer != null)
@@ -339,7 +343,7 @@ namespace Illumination
         {
             //Log.Message($"CreateLightControlUI: uid {uid}");
             LightControl lc = lightControls[uid];
-            lc.uiButton.label = UI.LightButtonLabel(uid, true);
+            lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val, true);
 
             colorPickerSpacer = UISpacer(10f);
             lightColorPicker = CreateColorPicker(lc.lightColor);
@@ -364,6 +368,16 @@ namespace Illumination
             })));
 
             lc.enableLookAt.toggle.interactable = lc.target != null;
+        }
+
+        private void ToggleLightOn(string uid)
+        {
+            if(lightControls.ContainsKey(uid))
+            {
+                LightControl lc = lightControls[uid];
+                lc.on.val = !lc.on.val;
+                lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val, true);
+            }
         }
 
         public void OnEnable()
@@ -525,7 +539,7 @@ namespace Illumination
                 //duplicated from AddExistingILAtomToPlugin
                 lc.InitFromJson(atom, lightJson);
                 string uid = atom.uid;
-                lc.uiButton = UILightButton(uid);
+                lc.uiButton = UILightButton(uid, lc.on.val);
                 lightControls.Add(uid, lc);
             }
         }

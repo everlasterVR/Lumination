@@ -14,6 +14,7 @@ namespace Illumination
         public FreeControllerV3 target;
         public UIDynamicButton uiButton;
 
+        public JSONStorableBool on;
         public JSONStorableColor lightColor;
         public JSONStorableBool enableLookAt;
         public JSONStorableBool autoIntensity;
@@ -84,6 +85,7 @@ namespace Illumination
             string lightTypeVal = null
         )
         {
+            on = light.GetBoolJSONParam("on");
             lightColor = light.GetColorJSONParam("color");
             enableLookAt = new JSONStorableBool("Enable aiming at target", enableLookAtVal);
             autoIntensity = new JSONStorableBool("Adjust intensity relative to target", autoIntensityVal);

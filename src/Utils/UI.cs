@@ -14,9 +14,11 @@ namespace Illumination
         public static Color turquoise = new Color(0.5f, 1f, 1f);
         public static Color white = UnityEngine.Color.white;
 
-        public static string LightButtonLabel(string uid, bool selected = false)
+        public static string LightButtonLabel(string uid, bool on, bool selected = false)
         {
-            return Bold(Color($"{(selected ? "■" : "  ")}    {uid}", selected ? turquoise : lightGray));
+            string icon = selected ? "■" : "  ";
+            string label = $"{icon}    {uid}    {(on ? "ON" : "OFF")}";
+            return Bold(Color(label, selected ? turquoise : lightGray));
         }
 
         public static string SelectTargetButtonLabel(string targetString)
