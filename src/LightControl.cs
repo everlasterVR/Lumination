@@ -1,27 +1,37 @@
 ﻿using SimpleJSON;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Illumination
 {
     internal class LightControl : MonoBehaviour
     {
-        public Atom lightAtom;
+        public JSONStorable light;
         public FreeControllerV3 control;
         public FreeControllerV3 target;
         public UIDynamicButton uiButton;
+
+        public JSONStorableColor lightColor;
         public JSONStorableBool enableLookAt;
+        public JSONStorableBool autoIntensity;
+        public JSONStorableBool autoRange;
+        public JSONStorableBool autoSpotAngle;
+        public JSONStorableFloat intensity;
+        public JSONStorableFloat range;
+        public JSONStorableStringChooser lightType;
+        public JSONStorableFloat spotAngle;
+        public JSONStorableFloat shadowStrength;
 
         public void Init(Atom lightAtom, string lightType)
         {
-            this.lightAtom = lightAtom;
+            light = lightAtom.GetStorableByID("Light");
             control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
             SetOnColor(UI.lightGray);
-            enableLookAt = new JSONStorableBool("Enable aiming at target", false);
+            InitStorables();
 
             // init defaults
-            JSONStorable light = lightAtom.GetStorableByID("Light");
             light.SetStringChooserParamValue("type", lightType);
         }
 
@@ -29,8 +39,10 @@ namespace Illumination
         {
             try
             {
-                this.lightAtom = lightAtom;
+                light = lightAtom.GetStorableByID("Light");
                 control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+                //TODO read from json
+                InitStorables();
                 enableLookAt = new JSONStorableBool("Enable aiming at target", enableLookAtVal);
                 if(targetCtrl != null)
                 {
@@ -42,6 +54,33 @@ namespace Illumination
             {
                 Log.Error($"Error initalizing from JSON for atom '{lightAtom?.name}': {e}", nameof(LightControl));
             }
+        }
+
+        private void InitStorables(
+            bool enableLookAtVal = false,
+            bool autoIntensityVal = false,
+            bool autoRangeVal = false,
+            bool autoSpotAngleVal = false,
+            string lightTypeVal = null
+        )
+        {
+            lightColor = light.GetColorJSONParam("color");
+
+            enableLookAt = new JSONStorableBool("Enable aiming at target", enableLookAtVal);
+            autoIntensity = new JSONStorableBool("Adjust intensity relative to target", autoIntensityVal);
+            autoRange = new JSONStorableBool("Adjust range relative to target", autoRangeVal);
+            autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to target", autoSpotAngleVal);
+
+            intensity = light.GetFloatJSONParam("intensity");
+            range = light.GetFloatJSONParam("range");
+            lightType = light.GetStringChooserJSONParam("type");
+            lightType.choices = new List<string> { "Spot", "Point" };
+            if(lightTypeVal != null)
+            {
+                lightType.val = lightTypeVal;
+            }
+            spotAngle = light.GetFloatJSONParam("spotAngle");
+            shadowStrength = light.GetFloatJSONParam("shadowStrength");
         }
 
         public IEnumerator OnSelectTarget(Action<string> callback)
@@ -106,8 +145,8 @@ namespace Illumination
         public JSONClass Serialize()
         {
             JSONClass json = new JSONClass();
-            json["atomUid"] = lightAtom.uid;
-            json["enableLookAt"].AsBool = enableLookAt.val;
+            json["atomUid"] = light.containingAtom.uid;
+            //json["enableLookAt"].AsBool = enableLookAt.val;
             if(target != null)
             {
                 json["aimingAtAtomUid"] = target.containingAtom.uid;
