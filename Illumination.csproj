@@ -78,8 +78,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="src\AimConstrain.cs" />
     <Compile Include="src\LightControl.cs" />
+    <Compile Include="src\UI.cs" />
     <Compile Include="src\Script.cs" />
     <Compile Include="src\Utils\Tools.cs" />
     <Compile Include="src\Utils\Log.cs" />
