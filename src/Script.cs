@@ -144,10 +144,12 @@ namespace Illumination
         {
             JSONStorableString storable = new JSONStorableString("title", "");
             UIDynamicTextField field = CreateTextField(storable);
-            field.UItext.fontSize = 36;
+            field.backgroundColor = UI.defaultPluginBgColor;
+            field.textColor = UI.white;
+            field.UItext.alignment = TextAnchor.MiddleCenter;
             field.height = 100;
             UI.DecreaseAvailableHeight(field.height);
-            storable.val = $"<b>{nameof(Illumination)}</b>\n<size=28>v{version}</size>";
+            storable.val = UI.Size("\n", 24) + UI.Bold(UI.Size($"{nameof(Illumination)} {version}", 36));
         }
 
         private void DisableOtherLightsUIToggle()

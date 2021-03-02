@@ -9,6 +9,8 @@ namespace Illumination
         private static float availableHeightRight = 1200f;
 
         public static Color defaultOnColor = new Color(0.0f, 1f, 0.0f, 0.5f);
+        public static Color defaultPluginBgColor = new Color32(193, 168, 203, 255);
+
         public static Color black = UnityEngine.Color.black;
         public static Color lightGray = new Color(0.75f, 0.75f, 0.75f);
         public static Color lightGreen = new Color(0.75f, 1f, 0.75f);
