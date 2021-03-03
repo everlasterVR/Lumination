@@ -11,9 +11,10 @@ namespace Illumination
     internal class Script : MVRScript
     {
         private const string version = "<Version>";
-        private const string atomUidPrefix = "Illum_";
+        private const string atomUidPrefix = "IL_";
         private const string atomType = "InvisibleLight";
-        private SortedDictionary<string, LightControl> lightControls = new SortedDictionary<string, LightControl>();
+        private Dictionary<string, LightControl> lightControls = new Dictionary<string, LightControl>();
+        private SortedDictionary<string, string> atomUidToGuid = new SortedDictionary<string, string>();
 
         private JSONStorableBool disableOtherLights;
         private List<Atom> disabledLights = new List<Atom>();
@@ -142,7 +143,7 @@ namespace Illumination
 
             if(restoringFromJson == null)
             {
-                callback(lightControls?.Keys.FirstOrDefault() ?? "");
+                callback(atomUidToGuid?.Keys.FirstOrDefault() ?? "");
             }
         }
 
@@ -150,14 +151,14 @@ namespace Illumination
         {
             if(lightControls.Count >= 6)
             {
-                Log.Message("You have the maximum number of lights.");
+                Log.Message("You have the maximum number of pixel lights.");
                 return;
             }
 
-            StartCoroutine(Tools.CreateAtomCo(atomType, $"{atomUidPrefix}{atomType}", (atom) =>
+            StartCoroutine(Tools.CreateAtomCo(atomType, GenerateUID("Spot"), (atom) =>
             {
-                string uid = AddExistingILAtomToPlugin(atom, "Spot");
-                RefreshUI(uid);
+                AddExistingILAtomToPlugin(atom, "Spot");
+                RefreshUI(atom.uid);
             }));
         }
 
@@ -181,14 +182,14 @@ namespace Illumination
                             return;
                         }
 
-                        if(lightControls.ContainsKey(atom.uid))
+                        if(atomUidToGuid.ContainsKey(atom.uid))
                         {
                             Log.Message($"Selected {atomType} is already added!");
                             return;
                         }
 
                         JSONStorable light = atom.GetStorableByID("Light");
-                        string lightType = $"{light.GetStringChooserParamValue("type")}";
+                        string lightType = light.GetStringChooserParamValue("type");
 
                         if(!LightControl.types.Contains(lightType))
                         {
@@ -203,12 +204,9 @@ namespace Illumination
 
                         light.SetBoolParamValue("on", true);
 
-                        if(!atom.uid.StartsWith($"{atomUidPrefix}"))
-                        {
-                            atom.SetUID($"{atomUidPrefix}{atom.uid}");
-                        }
-
-                        string uid = AddExistingILAtomToPlugin(atom, lightType);
+                        string uid = GenerateUID(lightType);
+                        atom.SetUID(uid);
+                        AddExistingILAtomToPlugin(atom, lightType);
                         RefreshUI(uid);
                     })
                 );
@@ -219,22 +217,27 @@ namespace Illumination
             }
         }
 
-        private string AddExistingILAtomToPlugin(Atom atom, string lightType)
+        private string GenerateUID(string lightType)
+        {
+            return Tools.NewUID($"{atomUidPrefix}{lightType}");
+        }
+
+        private void AddExistingILAtomToPlugin(Atom atom, string lightType)
         {
             LightControl lc = gameObject.AddComponent<LightControl>();
             lc.Init(atom, lightType);
-            string uid = atom.uid;
-            lc.uiButton = UILightButton(uid, lc.on.val);
-            lightControls.Add(uid, lc);
-            return uid;
+            lc.uiButton = UILightButton(atom.uid, lc.on.val);
+            string guid = Guid.NewGuid().ToString();
+            atomUidToGuid.Add(atom.uid, guid);
+            lightControls.Add(guid, lc);
         }
 
         private void RemoveSelectedInvisibleLight()
         {
             removedFromPluginUI = true;
-            if(lightControls.ContainsKey(selectedUid))
+            if(atomUidToGuid.ContainsKey(selectedUid))
             {
-                SuperController.singleton.RemoveAtom(lightControls[selectedUid].light.containingAtom);
+                SuperController.singleton.RemoveAtom(lightControls[atomUidToGuid[selectedUid]].light.containingAtom);
             }
         }
 
@@ -272,13 +275,13 @@ namespace Illumination
         private void RefreshUI(string uid)
         {
             //Log.Message($"RefreshUI: selectedUid {selectedUid}, uid {uid}");
-            if(lightControls.ContainsKey(selectedUid))
+            if(atomUidToGuid.ContainsKey(selectedUid))
             {
                 DestroyLightControlUI(selectedUid);
             }
 
             selectedUid = uid;
-            if(!lightControls.ContainsKey(uid))
+            if(!atomUidToGuid.ContainsKey(uid))
             {
                 removeLightButton.button.interactable = false;
                 return;
@@ -293,7 +296,7 @@ namespace Illumination
             //Log.Message($"DestroyLightControlUI: uid {uid}");
             try
             {
-                LightControl lc = lightControls[uid];
+                LightControl lc = lightControls[atomUidToGuid[uid]];
 
                 lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val);
                 lc.SetOnColor(UI.lightGray);
@@ -360,7 +363,7 @@ namespace Illumination
         private void CreateLightControlUI(string uid)
         {
             //Log.Message($"CreateLightControlUI: uid {uid}");
-            LightControl lc = lightControls[uid];
+            LightControl lc = lightControls[atomUidToGuid[uid]];
             lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val, true);
 
             colorPickerSpacer = UISpacer(10f);
@@ -391,15 +394,30 @@ namespace Illumination
                 selectTargetButton.label = UI.SelectTargetButtonLabel(targetString);
             })));
 
+            lc.lightType.popup.onValueChangeHandlers += new UIPopup.OnValueChange((value) =>
+            {
+                string newUid = string.Copy(lc.light.containingAtom.uid);
+                if(value == "Point")
+                {
+                    newUid = newUid.Replace("Spot", value);
+                }
+                else if(value == "Spot")
+                {
+                    newUid = newUid.Replace("Point", value);
+                }
+                SuperController.singleton.RenameAtom(lc.light.containingAtom, newUid);
+                lc.uiButton.label = UI.LightButtonLabel(newUid, lc.on.val, true);
+            });
+
             lc.SetInteractableElements();
             lc.AddInteractableListeners();
         }
 
         private void ToggleLightOn(string uid)
         {
-            if(lightControls.ContainsKey(uid))
+            if(atomUidToGuid.ContainsKey(uid))
             {
-                LightControl lc = lightControls[uid];
+                LightControl lc = lightControls[atomUidToGuid[uid]];
                 lc.on.val = !lc.on.val;
                 lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val, true);
             }
@@ -430,7 +448,7 @@ namespace Illumination
                 return false;
             }
 
-            if(!atom.on || atom.type != atomType || atom.uid.StartsWith(atomUidPrefix) || lightControls.ContainsKey(atom.uid))
+            if(!atom.on || atom.type != atomType || atom.uid.StartsWith(atomUidPrefix) || atomUidToGuid.ContainsKey(atom.uid))
             {
                 return false;
             }
@@ -476,15 +494,18 @@ namespace Illumination
         private void OnRemoveAtom(Atom atom)
         {
             //light atom added by plugin was removed elsewhere
-            if(lightControls.ContainsKey(atom.uid))
+            string uid = atom.uid;
+            if(atomUidToGuid.ContainsKey(uid))
             {
-                DestroyLightControlUI(atom.uid);
+                DestroyLightControlUI(uid);
 
-                LightControl lc = lightControls[atom.uid];
-                lightControls.Remove(atom.uid);
+                string guid = atomUidToGuid[uid];
+                LightControl lc = lightControls[guid];
+                lightControls.Remove(guid);
+                atomUidToGuid.Remove(uid);
                 RemoveButton(lc.uiButton);
                 Destroy(lc);
-                RefreshUI(lightControls?.Keys.FirstOrDefault() ?? "");
+                RefreshUI(atomUidToGuid?.Keys.FirstOrDefault() ?? "");
             }
 
             //other light atom disabled by plugin was removed
@@ -497,11 +518,13 @@ namespace Illumination
         private void OnRenameAtom(string fromuid, string touid)
         {
             //light atom added by plugin was renamed elsewhere
-            if(lightControls.ContainsKey(fromuid))
+            if(atomUidToGuid.ContainsKey(fromuid))
             {
-                LightControl lc = lightControls[fromuid];
-                lightControls.Remove(fromuid);
-                lightControls.Add(touid, lc);
+                string guid = atomUidToGuid[fromuid];
+                atomUidToGuid.Remove(fromuid);
+                atomUidToGuid.Add(touid, guid);
+
+                LightControl lc = lightControls[guid];
                 bool selected = selectedUid == fromuid;
                 lc.uiButton.label = UI.LightButtonLabel(touid, lc.on.val, selected);
                 lc.uiButton.button.onClick.RemoveAllListeners();
@@ -513,9 +536,9 @@ namespace Illumination
             }
 
             //selected light's target controller's containingAtom was renamed
-            if(lightControls.ContainsKey(selectedUid))
+            if(atomUidToGuid.ContainsKey(selectedUid))
             {
-                LightControl selectedLc = lightControls[selectedUid];
+                LightControl selectedLc = lightControls[atomUidToGuid[selectedUid]];
                 if(selectedLc != null && selectedLc.target != null && selectedLc.target.containingAtom.uid == touid)
                 {
                     selectTargetButton.label = UI.SelectTargetButtonLabel(selectedLc.GetTargetString());
@@ -578,7 +601,9 @@ namespace Illumination
                 lc.InitFromJson(atom, lightJson);
                 string uid = atom.uid;
                 lc.uiButton = UILightButton(uid, lc.on.val);
-                lightControls.Add(uid, lc);
+                string guid = Guid.NewGuid().ToString();
+                atomUidToGuid.Add(uid, guid);
+                lightControls.Add(guid, lc);
             }
         }
 
@@ -597,9 +622,9 @@ namespace Illumination
         {
             try
             {
-                if(lightControls != null && lightControls.ContainsKey(selectedUid))
+                if(atomUidToGuid != null && atomUidToGuid.ContainsKey(selectedUid))
                 {
-                    lightControls[selectedUid].SetOnColor(UITransform.gameObject.activeInHierarchy ? UI.turquoise : UI.lightGray);
+                    lightControls[atomUidToGuid[selectedUid]].SetOnColor(UITransform.gameObject.activeInHierarchy ? UI.turquoise : UI.lightGray);
                 }
             }
             catch(Exception e)
