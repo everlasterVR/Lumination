@@ -53,10 +53,10 @@ namespace Illumination
                 {
                     source.setJSONCallbackFunction = (jc) => copy.val = jc.val;
                 }
-                else
-                {
-                    Log.Message($"JSONStorableColor {source.name} already has a setJSONCallbackFunction!", nameof(Tools));
-                }
+                //else
+                //{
+                //    Log.Message($"JSONStorableColor {source.name} already has a setJSONCallbackFunction!", nameof(Tools));
+                //}
             }
 
             return copy;
@@ -81,10 +81,10 @@ namespace Illumination
                 {
                     source.setJSONCallbackFunction = (jc) => copy.val = jc.val;
                 }
-                else
-                {
-                    Log.Message($"JSONStorableFloat {source.name} already has a setJSONCallbackFunction!", nameof(Tools));
-                }
+                //else
+                //{
+                //    Log.Message($"JSONStorableFloat {source.name} already has a setJSONCallbackFunction!", nameof(Tools));
+                //}
             }
 
             return copy;
