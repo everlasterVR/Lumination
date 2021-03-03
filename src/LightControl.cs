@@ -91,23 +91,48 @@ namespace Illumination
             autoIntensity = new JSONStorableBool("Adjust intensity relative to Target", autoIntensityVal);
             autoRange = new JSONStorableBool("Adjust range relative to Target", autoRangeVal);
             autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to Target", autoSpotAngleVal);
-
-            lightType = new JSONStorableStringChooser(
-                "type",
-                new List<string> { "Spot", "Point" },
-                lightTypeVal ?? light.GetStringChooserParamValue("type"),
-                "Light Type",
-                (val) => light.SetStringChooserParamValue("type", val)
-            );
-            if(lightTypeVal != null)
-            {
-                light.SetStringChooserParamValue("type", lightTypeVal);
-            }
-
+            lightType = CreateLightTypeStorable(lightTypeVal);
             intensity = Tools.CopyFloatStorable(light.GetFloatJSONParam("intensity"), true);
             range = Tools.CopyFloatStorable(light.GetFloatJSONParam("range"), true);
             spotAngle = Tools.CopyFloatStorable(light.GetFloatJSONParam("spotAngle"), true);
             shadowStrength = Tools.CopyFloatStorable(light.GetFloatJSONParam("shadowStrength"), true);
+        }
+
+        private JSONStorableStringChooser CreateLightTypeStorable(string lightTypeVal)
+        {
+            List<string> types = new List<string> { "Spot", "Point" };
+            JSONStorableStringChooser source = light.GetStringChooserJSONParam("type");
+            JSONStorableStringChooser copy = new JSONStorableStringChooser(
+                source.name,
+                types, //exclude Directional and Area
+                source.defaultVal,
+                "Light Type",
+                (val) => source.val = val //callback to update type if type changed in plugin UI
+            );
+
+            if(lightTypeVal != null)
+            {
+                copy.val = lightTypeVal;
+            }
+
+            if(source.setJSONCallbackFunction == null)
+            {
+                source.setJSONCallbackFunction = (jc) =>
+                {
+                    if(!types.Contains(jc.val))
+                    {
+                        Log.Message($"'{jc.val}' type is not supported for lights controlled by this plugin.");
+                        jc.val = "Point"; //default to Point light
+                    }
+                    copy.val = jc.val;
+                };
+            }
+            //else
+            //{
+            //    Log.Message($"JSONStorableStringChooser {source.name} already has a setJSONCallbackFunction!");
+            //}
+
+            return copy;
         }
 
         public IEnumerator OnSelectTarget(Action<string> callback)

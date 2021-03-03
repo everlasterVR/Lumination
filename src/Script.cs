@@ -13,7 +13,7 @@ namespace Illumination
         private const string version = "<Version>";
         private const string atomUidPrefix = "Illum_";
         private const string atomType = "InvisibleLight";
-        private Dictionary<string, LightControl> lightControls = new Dictionary<string, LightControl>();
+        private SortedDictionary<string, LightControl> lightControls = new SortedDictionary<string, LightControl>();
 
         private JSONStorableBool disableOtherLights;
         private List<Atom> disabledLights = new List<Atom>();
