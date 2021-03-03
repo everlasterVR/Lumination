@@ -499,6 +499,13 @@ namespace Illumination
                     selectedUid = touid;
                 }
             }
+
+            //selected light's target controller's containingAtom was renamed
+            LightControl selectedLc = lightControls[selectedUid];
+            if(selectedLc != null && selectedLc.target != null && selectedLc.target.containingAtom.uid == touid)
+            {
+                selectTargetButton.label = UI.SelectTargetButtonLabel(selectedLc.GetTargetString());
+            }
         }
 
         public override JSONClass GetJSON(bool includePhysical = true, bool includeAppearance = true, bool forceStore = false)
