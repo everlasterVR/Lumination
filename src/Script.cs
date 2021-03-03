@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace Illumination
 {
@@ -237,7 +238,13 @@ namespace Illumination
             UIDynamicButton uiButton = CreateButton(UI.LightButtonLabel(uid, on));
             uiButton.buttonColor = UI.black;
             uiButton.buttonText.alignment = TextAnchor.MiddleLeft;
-            uiButton.button.onClick.AddListener(() =>
+            uiButton.button.onClick.AddListener(CreateLightButtonListener(uid));
+            return uiButton;
+        }
+
+        private UnityAction CreateLightButtonListener(string uid)
+        {
+            return () =>
             {
                 if(selectedUid != uid)
                 {
@@ -247,14 +254,13 @@ namespace Illumination
                 {
                     ToggleLightOn(uid);
                 }
-            });
-            return uiButton;
+            };
         }
 
         private void RefreshUI(string uid)
         {
             //Log.Message($"RefreshUI: selectedUid {selectedUid}, uid {uid}");
-            if(uid != selectedUid && lightControls.ContainsKey(selectedUid))
+            if(lightControls.ContainsKey(selectedUid))
             {
                 DestroyLightControlUI(selectedUid);
             }
@@ -484,10 +490,13 @@ namespace Illumination
                 LightControl lc = lightControls[fromuid];
                 lightControls.Remove(fromuid);
                 lightControls.Add(touid, lc);
-                lc.uiButton.label = touid;
-                if(selectedUid == fromuid)
+                bool selected = selectedUid == fromuid;
+                lc.uiButton.label = UI.LightButtonLabel(touid, lc.on.val, selected);
+                lc.uiButton.button.onClick.RemoveAllListeners();
+                lc.uiButton.button.onClick.AddListener(CreateLightButtonListener(touid));
+                if(selected)
                 {
-                    RefreshUI(touid);
+                    selectedUid = touid;
                 }
             }
         }

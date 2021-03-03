@@ -87,10 +87,10 @@ namespace Illumination
         {
             on = light.GetBoolJSONParam("on");
             lightColor = Tools.CopyColorStorable(light.GetColorJSONParam("color"), true);
-            enableLookAt = new JSONStorableBool("Enable aiming at target", enableLookAtVal);
-            autoIntensity = new JSONStorableBool("Adjust intensity relative to target", autoIntensityVal);
-            autoRange = new JSONStorableBool("Adjust range relative to target", autoRangeVal);
-            autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to target", autoSpotAngleVal);
+            enableLookAt = new JSONStorableBool("Enable aiming at Target", enableLookAtVal);
+            autoIntensity = new JSONStorableBool("Adjust intensity relative to Target", autoIntensityVal);
+            autoRange = new JSONStorableBool("Adjust range relative to Target", autoRangeVal);
+            autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to Target", autoSpotAngleVal);
 
             lightType = new JSONStorableStringChooser(
                 "type",

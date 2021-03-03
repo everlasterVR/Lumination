@@ -23,7 +23,7 @@ namespace Illumination
 
         public static string SelectTargetButtonLabel(string targetString)
         {
-            return $"Select target to aim at\n{Italic(Size(targetString, 26))}";
+            return $"Select Target\n{Italic(Size(targetString, 26))}";
         }
 
         public static string Color(string text, Color color)
