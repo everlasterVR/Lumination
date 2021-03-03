@@ -184,7 +184,7 @@ namespace Illumination
                         JSONStorable light = atom.GetStorableByID("Light");
                         string lightType = $"{light.GetStringChooserParamValue("type")}";
 
-                        if(lightType != "Spot" && lightType != "Point")
+                        if(!LightControl.types.Contains(lightType))
                         {
                             Log.Message("Only Spot and Point lights are supported.");
                             return;
@@ -196,6 +196,12 @@ namespace Illumination
                         }
 
                         light.SetBoolParamValue("on", true);
+
+                        if(!atom.uid.StartsWith($"{atomUidPrefix}"))
+                        {
+                            atom.SetUID($"{atomUidPrefix}{atom.uid}");
+                        }
+
                         string uid = AddExistingILAtomToPlugin(atom, lightType);
                         RefreshUI(uid);
                     })
@@ -501,10 +507,13 @@ namespace Illumination
             }
 
             //selected light's target controller's containingAtom was renamed
-            LightControl selectedLc = lightControls[selectedUid];
-            if(selectedLc != null && selectedLc.target != null && selectedLc.target.containingAtom.uid == touid)
+            if(lightControls.ContainsKey(selectedUid))
             {
-                selectTargetButton.label = UI.SelectTargetButtonLabel(selectedLc.GetTargetString());
+                LightControl selectedLc = lightControls[selectedUid];
+                if(selectedLc != null && selectedLc.target != null && selectedLc.target.containingAtom.uid == touid)
+                {
+                    selectTargetButton.label = UI.SelectTargetButtonLabel(selectedLc.GetTargetString());
+                }
             }
         }
 

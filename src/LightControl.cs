@@ -9,6 +9,7 @@ namespace Illumination
 {
     internal class LightControl : MonoBehaviour
     {
+        public static readonly List<string> types = new List<string> { "Spot", "Point" };
         public JSONStorable light;
         public FreeControllerV3 control;
         public FreeControllerV3 target;
@@ -100,7 +101,6 @@ namespace Illumination
 
         private JSONStorableStringChooser CreateLightTypeStorable(string lightTypeVal)
         {
-            List<string> types = new List<string> { "Spot", "Point" };
             JSONStorableStringChooser source = light.GetStringChooserJSONParam("type");
             JSONStorableStringChooser copy = new JSONStorableStringChooser(
                 source.name,
