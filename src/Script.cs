@@ -389,10 +389,10 @@ namespace Illumination
             selectTargetButton.button.onClick.AddListener(() => StartCoroutine(lc.OnSelectTarget((targetString) =>
             {
                 selectTargetButton.label = UI.SelectTargetButtonLabel(targetString);
-                lc.enableLookAt.toggle.interactable = true;
             })));
 
-            lc.enableLookAt.toggle.interactable = lc.target != null;
+            lc.SetInteractableElements();
+            lc.AddInteractableListeners();
         }
 
         private void ToggleLightOn(string uid)

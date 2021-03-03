@@ -185,9 +185,49 @@ namespace Illumination
             control.highlighted = false; // trigger color change
         }
 
+        public void SetInteractableElements()
+        {
+            //interactables
+            UpdateInteractableByAutoIntensity(autoIntensity.val);
+            UpdateInteractableByAutoRange(autoRange.val);
+            UpdateInteractableByAutoSpotAngle(autoSpotAngle.val);
+            UpdateInteractableByType(lightType.val);
+        }
+
+        public void AddInteractableListeners()
+        {
+            autoIntensity.toggle.onValueChanged.AddListener(UpdateInteractableByAutoIntensity);
+            autoRange.toggle.onValueChanged.AddListener(UpdateInteractableByAutoRange);
+            autoSpotAngle.toggle.onValueChanged.AddListener(UpdateInteractableByAutoSpotAngle);
+            lightType.popup.onValueChangeHandlers += new UIPopup.OnValueChange(UpdateInteractableByType);
+        }
+
+        private void UpdateInteractableByAutoIntensity(bool val)
+        {
+            intensity.slider.interactable = !val;
+        }
+
+        private void UpdateInteractableByAutoRange(bool val)
+        {
+            range.slider.interactable = !val;
+        }
+
+        private void UpdateInteractableByAutoSpotAngle(bool val)
+        {
+            spotAngle.slider.interactable = !val && lightType.val == "Spot";
+        }
+
+        private void UpdateInteractableByType(string val)
+        {
+            bool isSpot = val == "Spot";
+            enableLookAt.toggle.interactable = isSpot;
+            autoSpotAngle.toggle.interactable = isSpot;
+            spotAngle.slider.interactable = isSpot && !autoSpotAngle.val;
+        }
+
         private void FixedUpdate()
         {
-            if(target == null || !enableLookAt.val)
+            if(target == null || !enableLookAt.val || lightType.val != "Spot")
             {
                 return;
             }
