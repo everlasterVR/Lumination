@@ -163,6 +163,12 @@ namespace Illumination
 
         private void AddSelectedInvisibleLight()
         {
+            if(lightControls.Count >= 6)
+            {
+                Log.Message("You have the maximum number of lights.");
+                return;
+            }
+
             try
             {
                 SuperController.singleton.SelectModeControllers(
