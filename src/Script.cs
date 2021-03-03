@@ -138,7 +138,7 @@ namespace Illumination
                         return;
                     }
 
-                    AddExistingILAtomToPlugin(atom, $"{light.type}");
+                    AddExistingILAtomToPlugin(atom, $"{light.type}", true);
                 });
 
             if(restoringFromJson == null)
@@ -203,11 +203,8 @@ namespace Illumination
                         }
 
                         light.SetBoolParamValue("on", true);
-
-                        string uid = GenerateUID(lightType);
-                        atom.SetUID(uid);
-                        AddExistingILAtomToPlugin(atom, lightType);
-                        RefreshUI(uid);
+                        AddExistingILAtomToPlugin(atom, lightType, true);
+                        RefreshUI(atom.uid);
                     })
                 );
             }
@@ -217,16 +214,25 @@ namespace Illumination
             }
         }
 
-        private string GenerateUID(string lightType)
+        private string GenerateUID(string lightType, string aimAt = null)
         {
-            return Tools.NewUID($"{atomUidPrefix}{lightType}");
+            string name = atomUidPrefix + lightType;
+            if(!string.IsNullOrEmpty(aimAt))
+            {
+                name += $"-At{aimAt}";
+            }
+            return Tools.NewUID(name);
         }
 
-        private void AddExistingILAtomToPlugin(Atom atom, string lightType)
+        private void AddExistingILAtomToPlugin(Atom atom, string lightType, bool updateUid = false)
         {
             LightControl lc = gameObject.AddComponent<LightControl>();
             lc.Init(atom, lightType);
-            lc.uiButton = UILightButton(atom.uid, lc.on.val);
+            if(updateUid)
+            {
+                UpdateAtomUID(lc); //ensure name is correct when reloading plugin
+            }
+            lc.uiButton = SelectLightButton(atom.uid, lc.on.val);
             string guid = Guid.NewGuid().ToString();
             atomUidToGuid.Add(atom.uid, guid);
             lightControls.Add(guid, lc);
@@ -248,16 +254,16 @@ namespace Illumination
             return spacer;
         }
 
-        private UIDynamicButton UILightButton(string uid, bool on)
+        private UIDynamicButton SelectLightButton(string uid, bool on)
         {
             UIDynamicButton uiButton = CreateButton(UI.LightButtonLabel(uid, on));
             uiButton.buttonColor = UI.black;
             uiButton.buttonText.alignment = TextAnchor.MiddleLeft;
-            uiButton.button.onClick.AddListener(CreateLightButtonListener(uid));
+            uiButton.button.onClick.AddListener(OnSelectLight(uid));
             return uiButton;
         }
 
-        private UnityAction CreateLightButtonListener(string uid)
+        private UnityAction OnSelectLight(string uid)
         {
             return () =>
             {
@@ -391,26 +397,37 @@ namespace Illumination
 
             selectTargetButton.button.onClick.AddListener(() => StartCoroutine(lc.OnSelectTarget((targetString) =>
             {
+                //target was null or same as before
+                if(targetString == null)
+                {
+                    return;
+                }
+
+                UpdateAtomUID(lc);
                 selectTargetButton.label = UI.SelectTargetButtonLabel(targetString);
             })));
 
             lc.lightType.popup.onValueChangeHandlers += new UIPopup.OnValueChange((value) =>
             {
-                string newUid = string.Copy(lc.light.containingAtom.uid);
-                if(value == "Point")
+                //lightType was same as before
+                if(value == lc.prevLightType)
                 {
-                    newUid = newUid.Replace("Spot", value);
+                    return;
                 }
-                else if(value == "Spot")
-                {
-                    newUid = newUid.Replace("Point", value);
-                }
-                SuperController.singleton.RenameAtom(lc.light.containingAtom, newUid);
-                lc.uiButton.label = UI.LightButtonLabel(newUid, lc.on.val, true);
+                lc.prevLightType = value;
+                UpdateAtomUID(lc);
             });
 
             lc.SetInteractableElements();
             lc.AddInteractableListeners();
+        }
+
+        private void UpdateAtomUID(LightControl lc)
+        {
+            SuperController.singleton.RenameAtom(
+                lc.light.containingAtom,
+                GenerateUID(lc.lightType.val, lc.GetButtonLabelTargetString())
+            );
         }
 
         private void ToggleLightOn(string uid)
@@ -528,7 +545,7 @@ namespace Illumination
                 bool selected = selectedUid == fromuid;
                 lc.uiButton.label = UI.LightButtonLabel(touid, lc.on.val, selected);
                 lc.uiButton.button.onClick.RemoveAllListeners();
-                lc.uiButton.button.onClick.AddListener(CreateLightButtonListener(touid));
+                lc.uiButton.button.onClick.AddListener(OnSelectLight(touid));
                 if(selected)
                 {
                     selectedUid = touid;
@@ -600,7 +617,7 @@ namespace Illumination
                 //duplicated from AddExistingILAtomToPlugin
                 lc.InitFromJson(atom, lightJson);
                 string uid = atom.uid;
-                lc.uiButton = UILightButton(uid, lc.on.val);
+                lc.uiButton = SelectLightButton(uid, lc.on.val);
                 string guid = Guid.NewGuid().ToString();
                 atomUidToGuid.Add(uid, guid);
                 lightControls.Add(guid, lc);

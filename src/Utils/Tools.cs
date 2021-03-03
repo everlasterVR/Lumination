@@ -22,7 +22,7 @@ namespace Illumination
             callback(atom);
         }
 
-        //from Acidbubbles on Discord 27/02/2021
+        //adapted from Acidbubbles on Discord 27/02/2021
         public static string NewUID(string source)
         {
             HashSet<string> uids = new HashSet<string>(SuperController.singleton.GetAtomUIDs());

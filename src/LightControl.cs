@@ -10,6 +10,7 @@ namespace Illumination
     internal class LightControl : MonoBehaviour
     {
         public static readonly List<string> types = new List<string> { "Spot", "Point" };
+
         public JSONStorable light;
         public FreeControllerV3 control;
         public FreeControllerV3 target;
@@ -26,6 +27,8 @@ namespace Illumination
         public JSONStorableFloat range;
         public JSONStorableFloat spotAngle;
         public JSONStorableFloat shadowStrength;
+
+        public string prevLightType;
 
         public void Init(Atom lightAtom, string lightType)
         {
@@ -97,6 +100,8 @@ namespace Illumination
             range = Tools.CopyFloatStorable(light.GetFloatJSONParam("range"), true);
             spotAngle = Tools.CopyFloatStorable(light.GetFloatJSONParam("spotAngle"), true);
             shadowStrength = Tools.CopyFloatStorable(light.GetFloatJSONParam("shadowStrength"), true);
+
+            prevLightType = lightType.val;
         }
 
         private JSONStorableStringChooser CreateLightTypeStorable(string lightTypeVal)
@@ -139,6 +144,7 @@ namespace Illumination
         {
             control.physicsEnabled = true;
             bool waiting = true;
+            string currentTargetString = GetTargetString();
 
             SuperController.singleton.SelectModeControllers(
                 new SuperController.SelectControllerCallback(targetCtrl =>
@@ -154,24 +160,34 @@ namespace Illumination
                 yield return null;
             }
 
-            callback(GetTargetString());
+            string newTargetString = GetTargetString();
+            callback(newTargetString == currentTargetString ? null : newTargetString);
         }
 
         public string GetTargetString()
         {
-            string uid = target?.containingAtom.uid;
-            string name = target?.name;
-            if(uid != null && name != null)
+            if(target == null)
             {
-                return $"{uid}:{name}";
+                return null;
             }
-            return null;
+
+            return $"{target.containingAtom.uid}:{target.name}";
         }
 
-        public void OnStopAiming()
+        public string GetButtonLabelTargetString()
         {
-            enableLookAt.val = false;
-            target = null;
+            if(target == null)
+            {
+                return null;
+            }
+
+            Atom atom = target.containingAtom;
+            if(target.name == "control")
+            {
+                return UI.Capitalize(atom.uid);
+            }
+
+            return UI.Capitalize(target.name.Replace("Control", ""));
         }
 
         public void SetOnColor(Color color)
@@ -232,7 +248,14 @@ namespace Illumination
                 return;
             }
 
-            control.transform.LookAt(target.followWhenOff.position);
+            try
+            {
+                control.transform.LookAt(target.followWhenOff.position);
+            }
+            catch(Exception e)
+            {
+                Log.Error($"{e}");
+            }
         }
 
         public JSONClass Serialize()

@@ -16,8 +16,7 @@ namespace Illumination
 
         public static string LightButtonLabel(string uid, bool on, bool selected = false)
         {
-            string label = $"{(selected ? "■" : "  ")}    {uid}";
-            label = $"{Truncate(label, 30)}    {(on ? "ON" : "OFF")}";
+            string label = $"{(selected ? "■" : "  ")}    {(on ? "ON  " : "OFF")}   {Truncate(uid, 28)}";
             return Bold(Color(label, selected ? turquoise : lightGray));
         }
 
@@ -44,6 +43,16 @@ namespace Illumination
         public static string Size(string text, int size)
         {
             return $"<size={size}>{text}</size>";
+        }
+
+        public static string Capitalize(string text)
+        {
+            if(string.IsNullOrEmpty(text))
+            {
+                return "";
+            }
+
+            return char.ToUpper((text[0])) + (text.Length > 1 ? text.Substring(1) : "");
         }
 
         private static string Truncate(string value, int maxLength)
