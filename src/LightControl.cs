@@ -120,7 +120,10 @@ namespace Illumination
                 types, //exclude Directional and Area
                 source.defaultVal,
                 "Light Type",
-                (val) => OnChooseLightType(val, source)
+                (val) => {
+                    source.val = val; //update type if type changed in plugin UI
+                    OnChooseLightType(val);
+                }
             );
             copy.val = lightTypeVal ?? source.val;
 
@@ -144,7 +147,7 @@ namespace Illumination
             return copy;
         }
 
-        private void OnChooseLightType(string val, JSONStorableStringChooser source)
+        private void OnChooseLightType(string val)
         {
             //uncheck enable aiming and adjust spot angle if Point light, restore actual values if Spot light
             if(val == "Spot")
@@ -152,15 +155,17 @@ namespace Illumination
                 enableLookAt.val = activeEnableLookAtVal;
                 autoSpotAngle.val = activeAutoSpotAngleVal;
             }
-            else
+            else if(val == "Point")
             {
                 activeEnableLookAtVal = enableLookAt.val;
                 enableLookAt.val = false;
                 activeAutoSpotAngleVal = autoSpotAngle.val;
                 autoSpotAngle.val = false;
             }
-            //update type if type changed in plugin UI
-            source.val = val;
+            else
+            {
+                throw new ArgumentException($"Invalid type {val}");
+            }
         }
 
         public IEnumerator OnSelectTarget(Action<string> callback)

@@ -31,6 +31,7 @@ namespace Illumination
         private UIDynamicSlider rangeSlider;
         private UIDynamicSlider spotAngleSlider;
         private UIDynamicSlider shadowStrengthSlider;
+        private UIDynamicSlider distanceFromTargetSlider;
 
         private bool? restoringFromJson;
         private bool? removedFromPluginUI;
@@ -55,7 +56,7 @@ namespace Illumination
             AddSpotlightButton();
             AddLightFromSceneButton();
             RemoveLightButton();
-            UISpacer(10f);
+            UISpacer(10);
         }
 
         private void AddSpotlightButton()
@@ -296,6 +297,11 @@ namespace Illumination
                 {
                     RemoveToggle(autoSpotAngleToggle);
                 }
+                if(distanceFromTargetSlider != null)
+                {
+                    RemoveSlider(distanceFromTargetSlider);
+                }
+
                 if(lightTypeSpacer != null)
                 {
                     RemoveSpacer(lightTypeSpacer);
@@ -333,17 +339,21 @@ namespace Illumination
             LightControl lc = lightControls[atomUidToGuid[uid]];
             lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val, true);
 
-            colorPickerSpacer = UISpacer(10f);
+            colorPickerSpacer = UISpacer(CalculateLeftSpacerHeight());
             lightColorPicker = CreateColorPicker(lc.lightColor);
             lightColorPicker.label = "Light color";
+
             selectTargetButton = CreateButton(UI.SelectTargetButtonLabel(lc.GetTargetString()), true);
-            selectTargetButton.height = 100f;
+            selectTargetButton.height = 120;
             enableLookAtToggle = CreateToggle(lc.enableLookAt, true);
             autoIntensityToggle = CreateToggle(lc.autoIntensity, true);
             autoRangeToggle = CreateToggle(lc.autoRange, true);
             autoSpotAngleToggle = CreateToggle(lc.autoSpotAngle, true);
+            distanceFromTargetSlider = CreateSlider(lc.distanceFromTarget, true);
+            distanceFromTargetSlider.valueFormat = "F3";
+            distanceFromTargetSlider.label = "Distance from Target";
 
-            lightTypeSpacer = UISpacer(10f, true);
+            lightTypeSpacer = UISpacer(10, true);
             lightTypePopup = CreatePopup(lc.lightType, true);
             intensitySlider = CreateSlider(lc.intensity, true);
             intensitySlider.valueFormat = "F3";
@@ -391,6 +401,14 @@ namespace Illumination
             );
         }
 
+        //aligns color picker to the plugin UI lower edge based on the number of spotlights
+        private float CalculateLeftSpacerHeight()
+        {
+            float buttonHeight = 50;
+            float buttonSpacerHeight = 15;
+            return 482 - (lightControls.Count - 1) * (buttonHeight + buttonSpacerHeight);
+        }
+
         private void ToggleLightOn(string uid)
         {
             if(atomUidToGuid.ContainsKey(uid))
@@ -428,6 +446,7 @@ namespace Illumination
                 lightControls.Remove(guid);
                 atomUidToGuid.Remove(uid);
                 RemoveButton(lc.uiButton);
+                colorPickerSpacer.height = CalculateLeftSpacerHeight();
                 Destroy(lc);
 
                 if(selectedUid == uid)
