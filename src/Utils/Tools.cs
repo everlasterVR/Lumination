@@ -6,6 +6,8 @@ namespace Illumination
 {
     public static class Tools
     {
+        public static Log log = new Log(nameof(Tools));
+
         //from Acidbubbles on Discord 27/02/2021
         public static IEnumerator CreateAtomCo(string type, string uid, Action<Atom> callback)
         {
@@ -54,14 +56,7 @@ namespace Illumination
             if(callback)
             {
                 copy.setJSONCallbackFunction = (jc) => source.val = jc.val;
-                if(source.setJSONCallbackFunction == null)
-                {
-                    source.setJSONCallbackFunction = (jc) => copy.val = jc.val;
-                }
-                //else
-                //{
-                //    Log.Message($"JSONStorableColor {source.name} already has a setJSONCallbackFunction!", nameof(Tools));
-                //}
+                source.setJSONCallbackFunction = (jc) => copy.val = jc.val;
             }
 
             return copy;
@@ -82,14 +77,7 @@ namespace Illumination
             if(callback)
             {
                 copy.setJSONCallbackFunction = (jc) => source.val = jc.val;
-                if(source.setJSONCallbackFunction == null)
-                {
-                    source.setJSONCallbackFunction = (jc) => copy.val = jc.val;
-                }
-                //else
-                //{
-                //    Log.Message($"JSONStorableFloat {source.name} already has a setJSONCallbackFunction!", nameof(Tools));
-                //}
+                source.setJSONCallbackFunction = (jc) => copy.val = jc.val;
             }
 
             return copy;

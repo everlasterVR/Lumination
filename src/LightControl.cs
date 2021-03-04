@@ -127,22 +127,15 @@ namespace Illumination
             );
             copy.val = lightTypeVal ?? source.val;
 
-            if(source.setJSONCallbackFunction == null)
+            source.setJSONCallbackFunction = (jc) =>
             {
-                source.setJSONCallbackFunction = (jc) =>
+                if(!types.Contains(jc.val))
                 {
-                    if(!types.Contains(jc.val))
-                    {
-                        log.Message($"'{jc.val}' type is not supported for lights controlled by this plugin.");
-                        jc.val = "Point"; //default to Point light
-                    }
-                    copy.val = jc.val;
-                };
-            }
-            //else
-            //{
-            //    log.Message($"JSONStorableStringChooser {source.name} already has a setJSONCallbackFunction!");
-            //}
+                    log.Message($"'{jc.val}' type is not supported for lights controlled by this plugin.");
+                    jc.val = "Point"; //default to Point light
+                }
+                copy.val = jc.val;
+            };
 
             return copy;
         }
