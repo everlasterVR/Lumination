@@ -103,7 +103,7 @@ namespace Illumination
 
         private void DisableOtherLightsToggle()
         {
-            disableOtherLights = new JSONStorableBool("Disable other point and spot InvisibleLights", false);
+            disableOtherLights = new JSONStorableBool("Turn off other point and spot InvisibleLights", false);
             UIDynamicToggle uiToggle = CreateToggle(disableOtherLights);
             uiToggle.height = 100f;
             disableOtherLights.toggle.onValueChanged.AddListener(val =>
@@ -136,10 +136,11 @@ namespace Illumination
                 return false;
             }
 
-            Light light = atom.GetComponentInChildren<Light>();
-            if(light.type == LightType.Point || light.type == LightType.Spot)
+            JSONStorable light = atom.GetStorableByID("Light");
+            string lightType = light.GetStringChooserJSONParam("type").val;
+            if(lightType == "Point" || lightType == "Spot")
             {
-                atom.ToggleOn();
+                light.SetBoolParamValue("on", false);
                 disabledLights.Add(atom.uid, atom);
                 return true;
             }
@@ -151,9 +152,10 @@ namespace Illumination
         {
             disabledLights?.Values.ToList().ForEach(atom =>
             {
-                if(!atom.on)
+                if(atom.on)
                 {
-                    atom.ToggleOn();
+                    JSONStorable light = atom.GetStorableByID("Light");
+                    light.SetBoolParamValue("on", true);
                 }
             });
         }
@@ -217,11 +219,6 @@ namespace Illumination
                 {
                     disabledLights.Add(uid, GetAtomById(uid));
                 }
-            }
-
-            foreach(var item in disabledLights)
-            {
-                log.Message($"{item.Key} {item.Value.uid}");
             }
 
             DisableOtherPointAndSpotLights();
