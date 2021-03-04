@@ -504,19 +504,17 @@ namespace Illumination
             if(atom == null)
             {
                 log.Message($"Unable to control light atom '{atomUid}': mentioned in saved JSON but not found in scene.");
+                return;
             }
-            else
-            {
-                LightControl lc = gameObject.AddComponent<LightControl>();
 
-                //duplicated from AddExistingILAtomToPlugin
-                lc.InitFromJson(atom, lightJson);
-                string uid = atom.uid;
-                lc.uiButton = SelectLightButton(uid, lc.on.val);
-                string guid = Guid.NewGuid().ToString();
-                atomUidToGuid.Add(uid, guid);
-                lightControls.Add(guid, lc);
-            }
+            LightControl lc = gameObject.AddComponent<LightControl>();
+
+            //duplicated from AddExistingILAtomToPlugin
+            lc.InitFromJson(atom, lightJson);
+            lc.uiButton = SelectLightButton(atomUid, lc.on.val);
+            string guid = Guid.NewGuid().ToString();
+            atomUidToGuid.Add(atomUid, guid);
+            lightControls.Add(guid, lc);
         }
 
         public bool Includes(string uid)

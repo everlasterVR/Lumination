@@ -45,6 +45,7 @@ namespace Illumination
             {
                 light = lightAtom.GetStorableByID("Light");
                 control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+                SetOnColor(UI.lightGray);
                 InitStorables(
                     json["enableLookAt"].AsBool,
                     json["autoIntensity"].AsBool,
@@ -115,11 +116,7 @@ namespace Illumination
                 "Light Type",
                 (val) => source.val = val //callback to update type if type changed in plugin UI
             );
-
-            if(lightTypeVal != null)
-            {
-                copy.val = lightTypeVal;
-            }
+            copy.val = lightTypeVal ?? source.val;
 
             if(source.setJSONCallbackFunction == null)
             {
