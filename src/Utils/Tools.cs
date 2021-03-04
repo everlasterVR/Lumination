@@ -25,24 +25,24 @@ namespace Illumination
         }
 
         //adapted from Acidbubbles on Discord 27/02/2021
-        public static string NewUID(string source)
+        public static string NewUID(string basename)
         {
             HashSet<string> uids = new HashSet<string>(SuperController.singleton.GetAtomUIDs());
-            if(!uids.Contains(source))
+            if(!uids.Contains(basename))
             {
-                return source;
+                return basename;
             }
 
             for(int i = 2; i < 1000; i++)
             {
-                string uid = source + i;
+                string uid = basename + i;
                 if(!uids.Contains(uid))
                 {
                     return uid;
                 }
             }
 
-            return source + Guid.NewGuid();
+            return basename + Guid.NewGuid();
         }
 
         public static JSONStorableColor CopyColorStorable(JSONStorableColor source, bool callback)

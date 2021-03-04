@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -101,7 +102,7 @@ namespace Illumination
                         return;
                     }
 
-                    AddExistingILAtomToPlugin(atom, $"{light.type}");
+                    AddExistingILAtomToPlugin(atom, $"{light.type}", true);
                 });
 
             if(restoringFromJson == null)
@@ -118,7 +119,8 @@ namespace Illumination
                 return;
             }
 
-            StartCoroutine(Tools.CreateAtomCo(Const.ATOM_TYPE, GenerateUID("Spot"), (atom) =>
+            string basename = GenerateBasename("Spot");
+            StartCoroutine(Tools.CreateAtomCo(Const.ATOM_TYPE, Tools.NewUID(basename), (atom) =>
             {
                 AddExistingILAtomToPlugin(atom, "Spot", false, (lc) =>
                 {
@@ -182,17 +184,29 @@ namespace Illumination
             }
         }
 
-        private string GenerateUID(string lightType, string aimAt = null)
+        private string GenerateBasename(string lightType, string aimAt = null)
         {
             string name = Const.UID_PREFIX + lightType;
             if(!string.IsNullOrEmpty(aimAt))
             {
-                name += $"-At{aimAt}";
+                name += $"-{aimAt}";
             }
-            return Tools.NewUID(name);
+            return name;
         }
 
-        private void AddExistingILAtomToPlugin(Atom atom, string lightType, bool updateUid = false, Action<LightControl> callback = null)
+        private string ParseBasename(string uid)
+        {
+            try
+            {
+                return Regex.Split(uid, "\\d")[0];
+            }
+            catch(Exception)
+            {
+                return uid;
+            }
+        }
+
+        private void AddExistingILAtomToPlugin(Atom atom, string lightType, bool updateUid, Action<LightControl> callback = null)
         {
             LightControl lc = gameObject.AddComponent<LightControl>();
             lc.Init(atom, lightType);
@@ -349,7 +363,7 @@ namespace Illumination
             //log.Message($"CreateLightControlUI: uid {uid}");
             LightControl lc = lightControls[atomUidToGuid[uid]];
             lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val, true);
-            lc.SetOnStyle(true);
+            lc.SetOnStyle(UITransform.gameObject.activeInHierarchy);
 
             colorPickerSpacer = UISpacer(CalculateLeftSpacerHeight());
             lightColorPicker = CreateColorPicker(lc.lightColor);
@@ -380,23 +394,12 @@ namespace Illumination
 
             selectTargetButton.button.onClick.AddListener(() => StartCoroutine(lc.OnSelectTarget((targetString) =>
             {
-                //target was null or same as before
-                if(targetString == null)
-                {
-                    return;
-                }
-
                 UpdateAtomUID(lc);
                 selectTargetButton.label = UI.SelectTargetButtonLabel(targetString);
             })));
 
             lc.lightType.popup.onValueChangeHandlers += new UIPopup.OnValueChange((value) =>
             {
-                //lightType was same as before
-                if(value == lc.prevLightType)
-                {
-                    return;
-                }
                 lc.prevLightType = value;
                 UpdateAtomUID(lc);
             });
@@ -407,10 +410,12 @@ namespace Illumination
 
         private void UpdateAtomUID(LightControl lc)
         {
-            SuperController.singleton.RenameAtom(
-                lc.light.containingAtom,
-                GenerateUID(lc.lightType.val, lc.GetButtonLabelTargetString())
-            );
+            string basename = GenerateBasename(lc.lightType.val, lc.GetButtonLabelTargetString());
+            if(basename == ParseBasename(lc.light.containingAtom.uid))
+            {
+                return; //prevent rename of atom if only the number sequence differs
+            }
+            SuperController.singleton.RenameAtom(lc.light.containingAtom, Tools.NewUID(basename));
         }
 
         //aligns color picker to the plugin UI lower edge based on the number of spotlights
@@ -564,19 +569,22 @@ namespace Illumination
                     return;
                 }
 
-                atomUidToGuid?.ToList().ForEach(kvp =>
+                if(uiOpen)
                 {
-                    LightControl lc = lightControls[kvp.Value];
-                    if(kvp.Key == selectedUid)
+                    atomUidToGuid?.Where(kvp => kvp.Key != selectedUid).ToList().ForEach(kvp =>
                     {
-                        lc.uiButton.label = UI.LightButtonLabel(kvp.Key, lc.on.val, true);
-                        lc.SetOnStyle(uiOpen);
-                    }
-                    else
-                    {
+                        LightControl lc = lightControls[kvp.Value];
                         lc.uiButton.label = UI.LightButtonLabel(kvp.Key, lc.on.val);
-                    }
-                });
+                    });
+                }
+
+                if(atomUidToGuid != null && atomUidToGuid.ContainsKey(selectedUid))
+                {
+                    LightControl selectedLc = lightControls[atomUidToGuid[selectedUid]];
+                    selectedLc.SetOnStyle(uiOpen);
+                    selectedLc.uiButton.label = UI.LightButtonLabel(selectedUid, selectedLc.on.val, true);
+                }
+
                 uiOpenPrevFrame = uiOpen;
             }
             catch(Exception e)
