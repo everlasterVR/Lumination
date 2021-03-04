@@ -517,11 +517,6 @@ namespace Illumination
             lightControls.Add(guid, lc);
         }
 
-        public bool Includes(string uid)
-        {
-            return atomUidToGuid.ContainsKey(uid);
-        }
-
         private void Update()
         {
             try
