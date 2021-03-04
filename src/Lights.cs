@@ -268,7 +268,7 @@ namespace Illumination
                 LightControl lc = lightControls[atomUidToGuid[uid]];
 
                 lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val);
-                lc.SetOnColor(UI.lightGray);
+                lc.SetOnStyle();
 
                 if(colorPickerSpacer != null)
                 {
@@ -549,7 +549,7 @@ namespace Illumination
             {
                 if(atomUidToGuid != null && atomUidToGuid.ContainsKey(selectedUid))
                 {
-                    lightControls[atomUidToGuid[selectedUid]].SetOnColor(UITransform.gameObject.activeInHierarchy ? UI.turquoise : UI.lightGray);
+                    lightControls[atomUidToGuid[selectedUid]].SetOnStyle(UITransform.gameObject.activeInHierarchy);
                 }
             }
             catch(Exception e)

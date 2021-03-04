@@ -39,7 +39,7 @@ namespace Illumination
         {
             light = lightAtom.GetStorableByID("Light");
             control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
-            SetOnColor(UI.lightGray);
+            SetOnStyle();
             activeEnableLookAtVal = lightType == "Spot";
             activeAutoSpotAngleVal = false;
             InitStorables(lightTypeVal: lightType);
@@ -51,7 +51,7 @@ namespace Illumination
             {
                 light = lightAtom.GetStorableByID("Light");
                 control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
-                SetOnColor(UI.lightGray);
+                SetOnStyle();
                 bool isSpotLight = light.GetStringChooserParamValue("type") == "Spot";
                 activeEnableLookAtVal = isSpotLight && json["enableLookAt"].AsBool;
                 activeAutoSpotAngleVal = isSpotLight && json["autoSpotAngle"].AsBool;
@@ -210,15 +210,16 @@ namespace Illumination
             return UI.Capitalize(target.name.Replace("Control", ""));
         }
 
-        public void SetOnColor(Color color)
+        public void SetOnStyle(bool selected = false, bool reset = false)
         {
             if(control == null)
             {
                 return;
             }
 
-            control.onColor = color;
+            control.onColor = reset ? UI.defaultOnColor : (selected ? UI.turquoise : UI.lightGray);
             control.highlighted = false; // trigger color change
+            control.deselectedMeshScale = reset ? 0.02f : (selected ? 0.03f : 0.02f);
         }
 
         public void SetInteractableElements()
@@ -296,12 +297,12 @@ namespace Illumination
 
         private void OnEnable()
         {
-            SetOnColor(UI.lightGray);
+            SetOnStyle();
         }
 
         private void OnDisable()
         {
-            SetOnColor(UI.defaultOnColor);
+            SetOnStyle(reset: true);
         }
     }
 }
