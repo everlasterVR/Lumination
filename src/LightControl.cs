@@ -20,9 +20,13 @@ namespace Illumination
         public JSONStorableBool on;
         public JSONStorableColor lightColor;
         public JSONStorableBool enableLookAt;
+        private bool activeEnableLookAtVal;
         public JSONStorableBool autoIntensity;
         public JSONStorableBool autoRange;
         public JSONStorableBool autoSpotAngle;
+        private bool activeAutoSpotAngleVal;
+        public JSONStorableFloat distanceFromTarget;
+
         public JSONStorableStringChooser lightType;
         public JSONStorableFloat intensity;
         public JSONStorableFloat range;
@@ -36,6 +40,8 @@ namespace Illumination
             light = lightAtom.GetStorableByID("Light");
             control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
             SetOnColor(UI.lightGray);
+            activeEnableLookAtVal = lightType == "Spot";
+            activeAutoSpotAngleVal = false;
             InitStorables(lightTypeVal: lightType);
         }
 
@@ -46,11 +52,12 @@ namespace Illumination
                 light = lightAtom.GetStorableByID("Light");
                 control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
                 SetOnColor(UI.lightGray);
+                bool isSpotLight = light.GetStringChooserParamValue("type") == "Spot";
+                activeEnableLookAtVal = isSpotLight && json["enableLookAt"].AsBool;
+                activeAutoSpotAngleVal = isSpotLight && json["autoSpotAngle"].AsBool;
                 InitStorables(
-                    json["enableLookAt"].AsBool,
                     json["autoIntensity"].AsBool,
-                    json["autoRange"].AsBool,
-                    json["autoSpotAngle"].AsBool
+                    json["autoRange"].AsBool
                 );
 
                 FreeControllerV3 target = null;
@@ -84,19 +91,18 @@ namespace Illumination
         }
 
         private void InitStorables(
-            bool enableLookAtVal = false,
             bool autoIntensityVal = false,
             bool autoRangeVal = false,
-            bool autoSpotAngleVal = false,
             string lightTypeVal = null
         )
         {
             on = light.GetBoolJSONParam("on");
             lightColor = Tools.CopyColorStorable(light.GetColorJSONParam("color"), true);
-            enableLookAt = new JSONStorableBool("Enable aiming at Target", enableLookAtVal);
+            enableLookAt = new JSONStorableBool("Enable aiming at Target", activeEnableLookAtVal);
             autoIntensity = new JSONStorableBool("Adjust intensity relative to Target", autoIntensityVal);
             autoRange = new JSONStorableBool("Adjust range relative to Target", autoRangeVal);
-            autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to Target", autoSpotAngleVal);
+            autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to Target", activeAutoSpotAngleVal);
+            distanceFromTarget = new JSONStorableFloat("Distance from Target", 1f, 0f, 25f);
             lightType = CreateLightTypeStorable(lightTypeVal);
             intensity = Tools.CopyFloatStorable(light.GetFloatJSONParam("intensity"), true);
             range = Tools.CopyFloatStorable(light.GetFloatJSONParam("range"), true);
@@ -114,7 +120,7 @@ namespace Illumination
                 types, //exclude Directional and Area
                 source.defaultVal,
                 "Light Type",
-                (val) => source.val = val //callback to update type if type changed in plugin UI
+                (val) => OnChooseLightType(val, source)
             );
             copy.val = lightTypeVal ?? source.val;
 
@@ -138,6 +144,25 @@ namespace Illumination
             return copy;
         }
 
+        private void OnChooseLightType(string val, JSONStorableStringChooser source)
+        {
+            //uncheck enable aiming and adjust spot angle if Point light, restore actual values if Spot light
+            if(val == "Spot")
+            {
+                enableLookAt.val = activeEnableLookAtVal;
+                autoSpotAngle.val = activeAutoSpotAngleVal;
+            }
+            else
+            {
+                activeEnableLookAtVal = enableLookAt.val;
+                enableLookAt.val = false;
+                activeAutoSpotAngleVal = autoSpotAngle.val;
+                autoSpotAngle.val = false;
+            }
+            //update type if type changed in plugin UI
+            source.val = val;
+        }
+
         public IEnumerator OnSelectTarget(Action<string> callback)
         {
             control.physicsEnabled = true;
@@ -149,7 +174,6 @@ namespace Illumination
                 {
                     waiting = false;
                     target = targetCtrl;
-                    enableLookAt.val = true;
                 })
             );
 
@@ -260,10 +284,10 @@ namespace Illumination
         {
             JSONClass json = new JSONClass();
             json["atomUid"] = light.containingAtom.uid;
-            json["enableLookAt"].AsBool = enableLookAt.val;
+            json["enableLookAt"].AsBool = activeEnableLookAtVal;
             json["autoIntensity"].AsBool = autoIntensity.val;
             json["autoRange"].AsBool = autoRange.val;
-            json["autoSpotAngle"].AsBool = autoSpotAngle.val;
+            json["autoSpotAngle"].AsBool = activeAutoSpotAngleVal;
             if(target != null)
             {
                 json["aimingAtAtomUid"] = target.containingAtom.uid;
@@ -275,19 +299,11 @@ namespace Illumination
         private void OnEnable()
         {
             SetOnColor(UI.lightGray);
-            if(enableLookAt != null)
-            {
-                enableLookAt.val = target != null;
-            }
         }
 
         private void OnDisable()
         {
             SetOnColor(UI.defaultOnColor);
-            if(enableLookAt != null)
-            {
-                enableLookAt.val = false;
-            }
         }
     }
 }
