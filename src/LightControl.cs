@@ -11,6 +11,7 @@ namespace Illumination
     {
         public static readonly List<string> types = new List<string> { "Spot", "Point" };
 
+        private Log log = new Log(nameof(LightControl));
         public JSONStorable light;
         public FreeControllerV3 control;
         public FreeControllerV3 target;
@@ -64,7 +65,7 @@ namespace Illumination
 
                     if(target == null)
                     {
-                        Log.Message($"Unable to point '{lightAtom.uid}' at atom " +
+                        log.Message($"Unable to point '{lightAtom.uid}' at atom " +
                             $"'{aimingAtAtomUid}' target control '{aimingAtControl}': " +
                             $"target mentioned in saved JSON but not found in scene.");
                     }
@@ -77,7 +78,7 @@ namespace Illumination
             }
             catch(Exception e)
             {
-                Log.Error($"Error initalizing from JSON for atom '{lightAtom?.name}': {e}", nameof(LightControl));
+                log.Error($"Error initalizing from JSON for atom '{lightAtom?.name}': {e}");
             }
         }
 
@@ -126,7 +127,7 @@ namespace Illumination
                 {
                     if(!types.Contains(jc.val))
                     {
-                        Log.Message($"'{jc.val}' type is not supported for lights controlled by this plugin.");
+                        log.Message($"'{jc.val}' type is not supported for lights controlled by this plugin.");
                         jc.val = "Point"; //default to Point light
                     }
                     copy.val = jc.val;
@@ -134,7 +135,7 @@ namespace Illumination
             }
             //else
             //{
-            //    Log.Message($"JSONStorableStringChooser {source.name} already has a setJSONCallbackFunction!");
+            //    log.Message($"JSONStorableStringChooser {source.name} already has a setJSONCallbackFunction!");
             //}
 
             return copy;
@@ -254,7 +255,7 @@ namespace Illumination
             }
             catch(Exception e)
             {
-                Log.Error($"{e}");
+                log.Error($"{e}");
             }
         }
 

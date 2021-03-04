@@ -8,16 +8,12 @@ using UnityEngine.Events;
 
 namespace Illumination
 {
-    internal class Script : MVRScript
+    internal class Lights : MVRScript
     {
-        private const string version = "<Version>";
-        private const string atomUidPrefix = "IL_";
-        private const string atomType = "InvisibleLight";
+        private Log log = new Log(nameof(Lights));
+
         private Dictionary<string, LightControl> lightControls = new Dictionary<string, LightControl>();
         private SortedDictionary<string, string> atomUidToGuid = new SortedDictionary<string, string>();
-
-        private JSONStorableBool disableOtherLights;
-        private List<Atom> disabledLights = new List<Atom>();
         private string selectedUid = "";
 
         private UIDynamicButton removeLightButton;
@@ -43,79 +39,44 @@ namespace Illumination
         {
             try
             {
-                if(containingAtom.type != "CoreControl")
-                {
-                    Log.Error($"Must be loaded as a Scene Plugin.");
-                    return;
-                }
-
                 InitUILeft();
-                AddSuperControllerOnAtomActions();
+                SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
+                SuperController.singleton.onAtomUIDRenameHandlers += new SuperController.OnAtomUIDRename(OnRenameAtom);
                 StartCoroutine(AddExistingILAtoms((uid) => RefreshUI(uid)));
             }
             catch(Exception e)
             {
-                Log.Error($"{e}");
+                log.Error($"{e}");
             }
         }
 
         private void InitUILeft()
         {
-            TitleUITextField();
             AddSpotlightButton();
             AddLightFromSceneButton();
             RemoveLightButton();
-            DisableOtherLightsUIToggle();
             UISpacer(10f);
-        }
-
-        private void TitleUITextField()
-        {
-            JSONStorableString storable = new JSONStorableString("title", "");
-            UIDynamicTextField field = CreateTextField(storable);
-            field.backgroundColor = UI.defaultPluginBgColor;
-            field.textColor = UI.white;
-            field.UItext.alignment = TextAnchor.MiddleCenter;
-            field.height = 100;
-            storable.val = UI.Size("\n", 24) + UI.Bold(UI.Size($"{nameof(Illumination)} {version}", 36));
         }
 
         private void AddSpotlightButton()
         {
-            UIDynamicButton addSpotLightButton = CreateButton("Add new spotlight");
-            addSpotLightButton.buttonColor = UI.lightGreen;
-            addSpotLightButton.button.onClick.AddListener(() => AddNewInvisibleLight());
+            UIDynamicButton uiButton = CreateButton("Add new spotlight");
+            uiButton.buttonColor = UI.lightGreen;
+            uiButton.button.onClick.AddListener(() => AddNewInvisibleLight());
         }
 
         private void AddLightFromSceneButton()
         {
-            UIDynamicButton addLightFromSceneButton = CreateButton("Add light from scene");
-            addLightFromSceneButton.buttonColor = UI.lightGreen;
-            addLightFromSceneButton.button.onClick.AddListener(() => AddSelectedInvisibleLight());
+            UIDynamicButton uiButton = CreateButton("Add light from scene");
+            uiButton.buttonColor = UI.lightGreen;
+            uiButton.button.onClick.AddListener(() => AddSelectedInvisibleLight());
         }
 
         private void RemoveLightButton()
         {
-            removeLightButton = CreateButton("Remove selected atom");
+            removeLightButton = CreateButton("Remove selected light atom");
             removeLightButton.buttonColor = UI.pink;
             removeLightButton.button.onClick.AddListener(() => RemoveSelectedInvisibleLight());
-        }
-
-        private void DisableOtherLightsUIToggle()
-        {
-            disableOtherLights = new JSONStorableBool("Disable other point and spot lights", false);
-            UIDynamicToggle disableOtherLightsToggle = CreateToggle(disableOtherLights);
-            disableOtherLights.toggle.onValueChanged.AddListener(val =>
-            {
-                if(val)
-                {
-                    DisableOtherPointAndSpotLights();
-                }
-                else
-                {
-                    EnableDisabledLights();
-                }
-            });
         }
 
         private IEnumerator AddExistingILAtoms(Action<string> callback)
@@ -128,7 +89,7 @@ namespace Illumination
             }
 
             GetSceneAtoms()
-                .Where(atom => atom.type == atomType && atom.uid.StartsWith(atomUidPrefix) && !lightControls.ContainsKey(atom.uid))
+                .Where(atom => atom.type == Const.ATOM_TYPE && atom.uid.StartsWith(Const.UID_PREFIX) && !atomUidToGuid.ContainsKey(atom.uid))
                 .OrderBy(atom => atom.uid).ToList()
                 .ForEach(atom =>
                 {
@@ -138,7 +99,7 @@ namespace Illumination
                         return;
                     }
 
-                    AddExistingILAtomToPlugin(atom, $"{light.type}", true);
+                    AddExistingILAtomToPlugin(atom, $"{light.type}");
                 });
 
             if(restoringFromJson == null)
@@ -151,11 +112,11 @@ namespace Illumination
         {
             if(lightControls.Count >= 6)
             {
-                Log.Message("You have the maximum number of pixel lights.");
+                log.Message("You have the maximum number of pixel lights.");
                 return;
             }
 
-            StartCoroutine(Tools.CreateAtomCo(atomType, GenerateUID("Spot"), (atom) =>
+            StartCoroutine(Tools.CreateAtomCo(Const.ATOM_TYPE, GenerateUID("Spot"), (atom) =>
             {
                 AddExistingILAtomToPlugin(atom, "Spot");
                 RefreshUI(atom.uid);
@@ -166,7 +127,7 @@ namespace Illumination
         {
             if(lightControls.Count >= 6)
             {
-                Log.Message("You have the maximum number of lights.");
+                log.Message("You have the maximum number of lights.");
                 return;
             }
 
@@ -176,15 +137,15 @@ namespace Illumination
                     new SuperController.SelectControllerCallback(targetCtrl =>
                     {
                         Atom atom = targetCtrl.containingAtom;
-                        if(atom.type != atomType)
+                        if(atom.type != Const.ATOM_TYPE)
                         {
-                            Log.Message($"Selected atom is not an {atomType} atom!");
+                            log.Message($"Selected atom is not an {Const.ATOM_TYPE} atom!");
                             return;
                         }
 
                         if(atomUidToGuid.ContainsKey(atom.uid))
                         {
-                            Log.Message($"Selected {atomType} is already added!");
+                            log.Message($"Selected {Const.ATOM_TYPE} is already added!");
                             return;
                         }
 
@@ -193,7 +154,7 @@ namespace Illumination
 
                         if(!LightControl.types.Contains(lightType))
                         {
-                            Log.Message("Only Spot and Point lights are supported.");
+                            log.Message("Only Spot and Point lights are supported.");
                             return;
                         }
 
@@ -210,13 +171,13 @@ namespace Illumination
             }
             catch(Exception e)
             {
-                Log.Error($"{e}");
+                log.Error($"{e}");
             }
         }
 
         private string GenerateUID(string lightType, string aimAt = null)
         {
-            string name = atomUidPrefix + lightType;
+            string name = Const.UID_PREFIX + lightType;
             if(!string.IsNullOrEmpty(aimAt))
             {
                 name += $"-At{aimAt}";
@@ -280,7 +241,7 @@ namespace Illumination
 
         private void RefreshUI(string uid)
         {
-            //Log.Message($"RefreshUI: selectedUid {selectedUid}, uid {uid}");
+            //log.Message($"RefreshUI: selectedUid {selectedUid}, uid {uid}");
             if(atomUidToGuid.ContainsKey(selectedUid))
             {
                 DestroyLightControlUI(selectedUid);
@@ -299,7 +260,7 @@ namespace Illumination
 
         private void DestroyLightControlUI(string uid)
         {
-            //Log.Message($"DestroyLightControlUI: uid {uid}");
+            //log.Message($"DestroyLightControlUI: uid {uid}");
             try
             {
                 LightControl lc = lightControls[atomUidToGuid[uid]];
@@ -362,13 +323,13 @@ namespace Illumination
             }
             catch(Exception e)
             {
-                Log.Error($"{e}");
+                log.Error($"{e}");
             }
         }
 
         private void CreateLightControlUI(string uid)
         {
-            //Log.Message($"CreateLightControlUI: uid {uid}");
+            //log.Message($"CreateLightControlUI: uid {uid}");
             LightControl lc = lightControls[atomUidToGuid[uid]];
             lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val, true);
 
@@ -440,71 +401,15 @@ namespace Illumination
             }
         }
 
-        public void OnEnable()
+        private void OnEnable()
         {
             try
             {
                 lightControls?.Values.ToList().ForEach(it => it.enabled = true);
-                DisableOtherPointAndSpotLights();
             }
             catch(Exception e)
             {
-                Log.Error($"{e}");
-            }
-        }
-
-        private void DisableOtherPointAndSpotLights()
-        {
-            GetSceneAtoms().ForEach(atom => DisableAtomIfIsOtherLight(atom));
-        }
-
-        private bool DisableAtomIfIsOtherLight(Atom atom)
-        {
-            if(disableOtherLights == null || !disableOtherLights.val)
-            {
-                return false;
-            }
-
-            if(!atom.on || atom.type != atomType || atom.uid.StartsWith(atomUidPrefix) || atomUidToGuid.ContainsKey(atom.uid))
-            {
-                return false;
-            }
-
-            Light light = atom.GetComponentInChildren<Light>();
-            if(light.type == LightType.Point || light.type == LightType.Spot)
-            {
-                atom.ToggleOn();
-                disabledLights.Add(atom);
-                return true;
-            }
-
-            return false;
-        }
-
-        private void EnableDisabledLights()
-        {
-            disabledLights?.ForEach(atom =>
-            {
-                if(!atom.on)
-                {
-                    atom.ToggleOn();
-                }
-            });
-        }
-
-        private void AddSuperControllerOnAtomActions()
-        {
-            SuperController.singleton.onAtomAddedHandlers += new SuperController.OnAtomAdded(OnAddAtom);
-            SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
-            SuperController.singleton.onAtomUIDRenameHandlers += new SuperController.OnAtomUIDRename(OnRenameAtom);
-        }
-
-        private void OnAddAtom(Atom atom)
-        {
-            bool wasDisabled = DisableAtomIfIsOtherLight(atom);
-            if(wasDisabled)
-            {
-                Log.Message($"New {atomType} '{atom.uid}' was automatically disabled because 'Disable other point and spot lights' is checked in plugin UI.");
+                log.Error($"{e}");
             }
         }
 
@@ -523,12 +428,6 @@ namespace Illumination
                 RemoveButton(lc.uiButton);
                 Destroy(lc);
                 RefreshUI(atomUidToGuid?.Keys.FirstOrDefault() ?? "");
-            }
-
-            //other light atom disabled by plugin was removed
-            if(disabledLights.Contains(atom))
-            {
-                disabledLights.Remove(atom);
             }
         }
 
@@ -572,7 +471,6 @@ namespace Illumination
             {
                 json["selected"] = selectedUid;
             }
-            json["disableOtherLights"].AsBool = disableOtherLights.val;
             needsStore = true;
             return json;
         }
@@ -594,8 +492,6 @@ namespace Illumination
                 RestoreLightControlFromJSON(lightJson);
             }
 
-            disableOtherLights.val = json["disableOtherLights"].AsBool;
-            DisableOtherPointAndSpotLights();
             RefreshUI(json["selected"]?.Value ?? "");
 
             restoringFromJson = false;
@@ -607,8 +503,7 @@ namespace Illumination
             Atom atom = GetAtomById(atomUid);
             if(atom == null)
             {
-                Log.Message($"Unable to control light atom '{atomUid}': " +
-                    $"mentioned in saved JSON but not found in scene.");
+                log.Message($"Unable to control light atom '{atomUid}': mentioned in saved JSON but not found in scene.");
             }
             else
             {
@@ -624,18 +519,12 @@ namespace Illumination
             }
         }
 
-        //public void FixedUpdate()
-        //{
-        //    try
-        //    {
-        //    }
-        //    catch(Exception e)
-        //    {
-        //        Log.Error($"{e}");
-        //    }
-        //}
+        public bool Includes(string uid)
+        {
+            return atomUidToGuid.ContainsKey(uid);
+        }
 
-        public void Update()
+        private void Update()
         {
             try
             {
@@ -646,35 +535,33 @@ namespace Illumination
             }
             catch(Exception e)
             {
-                Log.Error($"{e}");
+                log.Error($"{e}");
             }
         }
 
-        public void OnDisable()
+        private void OnDisable()
         {
             try
             {
                 lightControls?.Values.ToList().ForEach(it => it.enabled = false);
-                EnableDisabledLights();
             }
             catch(Exception e)
             {
-                Log.Error($"{e}");
+                log.Error($"{e}");
             }
         }
 
-        public void OnDestroy()
+        private void OnDestroy()
         {
             try
             {
                 lightControls?.Values.ToList().ForEach(it => Destroy(it));
-                SuperController.singleton.onAtomAddedHandlers -= new SuperController.OnAtomAdded(OnAddAtom);
                 SuperController.singleton.onAtomRemovedHandlers -= new SuperController.OnAtomRemoved(OnRemoveAtom);
                 SuperController.singleton.onAtomUIDRenameHandlers -= new SuperController.OnAtomUIDRename(OnRenameAtom);
             }
             catch(Exception e)
             {
-                Log.Error($"{e}");
+                log.Error($"{e}");
             }
         }
     }

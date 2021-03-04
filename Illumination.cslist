@@ -1,5 +1,7 @@
 src\Utils\Log.cs
 src\Utils\Tools.cs
 src\Utils\UI.cs
+src\Const.cs
 src\LightControl.cs
-src\Script.cs
+src\Manager.cs
+src\Lights.cs
