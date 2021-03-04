@@ -14,6 +14,16 @@ namespace Illumination
         public static Color turquoise = new Color(0.5f, 1f, 1f);
         public static Color white = UnityEngine.Color.white;
 
+        public static string TitleTextStyle(string title)
+        {
+            return Size("\n", 24) + Bold(Size(title, 36));
+        }
+
+        public static string FormatUsage(string title, string subtitle)
+        {
+            return Size("\n", 8) + Bold(Size(title, 32)) + "\n\n" + Size(subtitle, 28);
+        }
+
         public static string LightButtonLabel(string uid, bool on, bool selected = false)
         {
             string label = $"{(selected ? "■" : "  ")}    {(on ? "ON  " : "OFF")}   {Truncate(uid, 28)}";
@@ -23,6 +33,11 @@ namespace Illumination
         public static string SelectTargetButtonLabel(string targetString)
         {
             return $"Select Target\n{Italic(Size(targetString, 26))}";
+        }
+
+        public static string LineBreak()
+        {
+            return "\n" + Size("\n", 12);
         }
 
         public static string Color(string text, Color color)

@@ -27,7 +27,7 @@ namespace Illumination
                 }
 
                 InitUILeft();
-                //InitUIRight();
+                InitUIRight();
 
                 SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
                 SuperController.singleton.onAtomAddedHandlers += new SuperController.OnAtomAdded(OnAddAtom);
@@ -40,72 +40,117 @@ namespace Illumination
 
         private void InitUILeft()
         {
-            TitleUITextField();
-            LoadLightingRigButton();
-            SaveLightingRigButton();
-            ClearLightingRigButton();
-            SelectCenterAtomButton();
-            EnablePositionParentLinkToggle();
+            TitleUITextField($"{nameof(Illumination)} {version}");
+
+            UISpacer(15);
+            LoadButton();
+            SaveButton();
+            LoadDefaultButton();
+            SaveDefaultButton();
+            ClearButton();
+
+            UISpacer(15);
+            SelectTargetButton();
+            UnsetTargetButton();
+            PositionParentLinkToggle();
+
+            UISpacer(75);
             DisableOtherLightsToggle();
         }
 
-        //private void InitUIRight()
-        //{
+        private void InitUIRight()
+        {
+            UISpacer(130, true);
+            string presets = $"A preset includes all controlled light atoms and their settings, as well as the below Target and Other settings." +
+                $"{UI.LineBreak()}The default preset is automatically loaded when the plugin is added.";
+            var presetsField = UsageUITextField("presets", "Lighting Rig Presets", presets);
+            presetsField.height = 310;
 
-        //}
+            UISpacer(15, true);
+            string rigTarget = $"Select a target from the scene to center the lighting rig around." +
+                $"{UI.LineBreak()}Presets using a target missing from the scene will center around (0,0,0)." +
+                $"{UI.LineBreak()}Enable parent linking to keep lights aligned to a moving target.";
+            var rigTargetField = UsageUITextField("rigTarget", "Lighting Rig Target", rigTarget);
+            rigTargetField.height = 310;
 
-        private void TitleUITextField()
+            UISpacer(15, true);
+            string other = "Turns off Spot and Point type invisible lights not controlled by Illumination while the plugin is active.";
+            var otherField = UsageUITextField("other", "Other Settings", other);
+            otherField.height = 310;
+        }
+
+        private void TitleUITextField(string title, bool rightSide = false)
         {
             JSONStorableString storable = new JSONStorableString("title", "");
-            UIDynamicTextField field = CreateTextField(storable);
+            UIDynamicTextField field = CreateTextField(storable, rightSide);
             field.backgroundColor = UI.defaultPluginBgColor;
             field.textColor = UI.white;
             field.UItext.alignment = TextAnchor.MiddleCenter;
             field.height = 100;
-            storable.val = UI.Size("\n", 24) + UI.Bold(UI.Size($"{nameof(Illumination)} {version}", 36));
+            storable.val = UI.TitleTextStyle(title);
         }
 
-        private void LoadLightingRigButton()
+        private void LoadButton(bool rightSide = false)
         {
-            UIDynamicButton uiButton = CreateButton("Load lighting rig");
+            UIDynamicButton uiButton = CreateButton("Load", rightSide);
             //button.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => { });
         }
 
-        private void SaveLightingRigButton()
+        private void LoadDefaultButton(bool rightSide = false)
         {
-            UIDynamicButton uiButton = CreateButton("Save lighting rig");
+            UIDynamicButton uiButton = CreateButton("Load Default", rightSide);
             //button.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => { });
         }
 
-        private void ClearLightingRigButton()
+        private void SaveButton(bool rightSide = false)
         {
-            UIDynamicButton uiButton = CreateButton("Clear lighting rig");
+            UIDynamicButton uiButton = CreateButton("Save As", rightSide);
             //button.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => { });
         }
 
-        private void SelectCenterAtomButton()
+        private void SaveDefaultButton(bool rightSide = false)
         {
-            UIDynamicButton uiButton = CreateButton("Select center atom");
+            UIDynamicButton uiButton = CreateButton("Save As Default", rightSide);
             //button.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => { });
         }
 
-        private void EnablePositionParentLinkToggle()
+        private void ClearButton(bool rightSide = false)
         {
-            enablePositionParentLink = new JSONStorableBool("Enable position parent link", false);
-            UIDynamicToggle uiToggle = CreateToggle(enablePositionParentLink);
-            uiToggle.height = 100f;
+            UIDynamicButton uiButton = CreateButton("Clear", rightSide);
+            //button.buttonColor = UI.lightGreen;
+            uiButton.button.onClick.AddListener(() => { });
+        }
+
+        private void SelectTargetButton(bool rightSide = false)
+        {
+            UIDynamicButton uiButton = CreateButton("Select and align to Target", rightSide);
+            uiButton.height = 120;
+            //button.buttonColor = UI.lightGreen;
+            uiButton.button.onClick.AddListener(() => { });
+        }
+
+        private void UnsetTargetButton(bool rightSide = false)
+        {
+            UIDynamicButton uiButton = CreateButton("Unset Target", rightSide);
+            //button.buttonColor = UI.lightGreen;
+            uiButton.button.onClick.AddListener(() => { });
+        }
+
+        private void PositionParentLinkToggle(bool rightSide = false)
+        {
+            enablePositionParentLink = new JSONStorableBool("Parent link position to Target", false);
+            UIDynamicToggle uiToggle = CreateToggle(enablePositionParentLink, rightSide);
             enablePositionParentLink.toggle.onValueChanged.AddListener(val => { });
         }
 
-        private void DisableOtherLightsToggle()
+        private void DisableOtherLightsToggle(bool rightSide = false)
         {
-            disableOtherLights = new JSONStorableBool("Turn off other point and spot InvisibleLights", false);
-            UIDynamicToggle uiToggle = CreateToggle(disableOtherLights);
-            uiToggle.height = 100f;
+            disableOtherLights = new JSONStorableBool("Switch off other lights", false);
+            UIDynamicToggle uiToggle = CreateToggle(disableOtherLights, rightSide);
             disableOtherLights.toggle.onValueChanged.AddListener(val =>
             {
                 if(val)
@@ -118,6 +163,21 @@ namespace Illumination
                 }
             });
         }
+
+        private UIDynamicTextField UsageUITextField(string name, string title, string text)
+        {
+            JSONStorableString storable = new JSONStorableString(name, UI.FormatUsage(title, text));
+            UIDynamicTextField field = CreateTextField(storable, true);
+            //field.backgroundColor = UI.defaultPluginBgColor;
+            return field;
+        }
+
+        private void UISpacer(float height, bool rightSide = false)
+        {
+            UIDynamic spacer = CreateSpacer(rightSide);
+            spacer.height = height;
+        }
+
 
         private void DisableOtherPointAndSpotLights()
         {
