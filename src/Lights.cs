@@ -119,7 +119,11 @@ namespace Illumination
 
             StartCoroutine(Tools.CreateAtomCo(Const.ATOM_TYPE, GenerateUID("Spot"), (atom) =>
             {
-                AddExistingILAtomToPlugin(atom, "Spot");
+                AddExistingILAtomToPlugin(atom, "Spot", false, (lc) =>
+                {
+                    lc.intensity.val = 1.2f;
+                    lc.range.val = 7;
+                });
                 atom.transform.forward = Vector3.down;
                 RefreshUI(atom.uid);
             }));
@@ -187,7 +191,7 @@ namespace Illumination
             return Tools.NewUID(name);
         }
 
-        private void AddExistingILAtomToPlugin(Atom atom, string lightType, bool updateUid = false)
+        private void AddExistingILAtomToPlugin(Atom atom, string lightType, bool updateUid = false, Action<LightControl> callback = null)
         {
             LightControl lc = gameObject.AddComponent<LightControl>();
             lc.Init(atom, lightType);
@@ -199,6 +203,11 @@ namespace Illumination
             string guid = Guid.NewGuid().ToString();
             atomUidToGuid.Add(atom.uid, guid);
             lightControls.Add(guid, lc);
+
+            if(callback != null)
+            {
+                callback(lc);
+            }
         }
 
         private void RemoveSelectedInvisibleLight()
