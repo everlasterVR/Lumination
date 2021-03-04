@@ -47,7 +47,7 @@ namespace Illumination
             SaveButton();
             LoadDefaultButton();
             SaveDefaultButton();
-            ClearButton();
+            AutoAlignToggle();
 
             UISpacer(15);
             SelectTargetButton();
@@ -61,15 +61,14 @@ namespace Illumination
         private void InitUIRight()
         {
             UISpacer(130, true);
-            string presets = $"A preset includes all controlled light atoms and their settings, as well as the below Target and Other settings." +
-                $"{UI.LineBreak()}The default preset is automatically loaded when the plugin is added.";
+            string presets = $"A preset includes all controlled light atoms and their settings." +
+                $"{UI.LineBreak()}The default preset is automatically loaded when the plugin is added to the scene.";
             var presetsField = UsageUITextField("presets", "Lighting Rig Presets", presets);
             presetsField.height = 310;
 
             UISpacer(15, true);
             string rigTarget = $"Select a target from the scene to center the lighting rig around." +
-                $"{UI.LineBreak()}Presets using a target missing from the scene will center around (0,0,0)." +
-                $"{UI.LineBreak()}Enable parent linking to keep lights aligned to a moving target.";
+                $"{UI.LineBreak()}Following makes the lights parent linked to the target atom.";
             var rigTargetField = UsageUITextField("rigTarget", "Lighting Rig Target", rigTarget);
             rigTargetField.height = 310;
 
@@ -79,10 +78,10 @@ namespace Illumination
             otherField.height = 310;
         }
 
-        private void TitleUITextField(string title, bool rightSide = false)
+        private void TitleUITextField(string title)
         {
             JSONStorableString storable = new JSONStorableString("title", "");
-            UIDynamicTextField field = CreateTextField(storable, rightSide);
+            UIDynamicTextField field = CreateTextField(storable);
             field.backgroundColor = UI.defaultPluginBgColor;
             field.textColor = UI.white;
             field.UItext.alignment = TextAnchor.MiddleCenter;
@@ -90,67 +89,67 @@ namespace Illumination
             storable.val = UI.TitleTextStyle(title);
         }
 
-        private void LoadButton(bool rightSide = false)
+        private void LoadButton()
         {
-            UIDynamicButton uiButton = CreateButton("Load", rightSide);
+            UIDynamicButton uiButton = CreateButton("Load preset");
             //button.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => { });
         }
 
-        private void LoadDefaultButton(bool rightSide = false)
+        private void LoadDefaultButton()
         {
-            UIDynamicButton uiButton = CreateButton("Load Default", rightSide);
+            UIDynamicButton uiButton = CreateButton("Load default preset");
             //button.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => { });
         }
 
-        private void SaveButton(bool rightSide = false)
+        private void SaveButton()
         {
-            UIDynamicButton uiButton = CreateButton("Save As", rightSide);
+            UIDynamicButton uiButton = CreateButton("Save preset");
             //button.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => { });
         }
 
-        private void SaveDefaultButton(bool rightSide = false)
+        private void SaveDefaultButton()
         {
-            UIDynamicButton uiButton = CreateButton("Save As Default", rightSide);
+            UIDynamicButton uiButton = CreateButton("Save current as default");
             //button.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => { });
         }
 
-        private void ClearButton(bool rightSide = false)
+        private void AutoAlignToggle()
         {
-            UIDynamicButton uiButton = CreateButton("Clear", rightSide);
-            //button.buttonColor = UI.lightGreen;
-            uiButton.button.onClick.AddListener(() => { });
+            JSONStorableBool storable = new JSONStorableBool("Auto-align to Person", true);
+            UIDynamicToggle uiToggle = CreateToggle(storable);
+            storable.toggle.onValueChanged.AddListener(val => { });
         }
 
-        private void SelectTargetButton(bool rightSide = false)
+        private void SelectTargetButton()
         {
-            UIDynamicButton uiButton = CreateButton("Select and align to Target", rightSide);
+            UIDynamicButton uiButton = CreateButton("Select Target and align to");
             uiButton.height = 120;
             //button.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => { });
         }
 
-        private void UnsetTargetButton(bool rightSide = false)
+        private void UnsetTargetButton()
         {
-            UIDynamicButton uiButton = CreateButton("Unset Target", rightSide);
+            UIDynamicButton uiButton = CreateButton("Unset Target");
             //button.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => { });
         }
 
-        private void PositionParentLinkToggle(bool rightSide = false)
+        private void PositionParentLinkToggle()
         {
-            enablePositionParentLink = new JSONStorableBool("Parent link position to Target Atom", false);
-            UIDynamicToggle uiToggle = CreateToggle(enablePositionParentLink, rightSide);
+            enablePositionParentLink = new JSONStorableBool("Follow Target atom", false);
+            UIDynamicToggle uiToggle = CreateToggle(enablePositionParentLink);
             enablePositionParentLink.toggle.onValueChanged.AddListener(val => { });
         }
 
-        private void DisableOtherLightsToggle(bool rightSide = false)
+        private void DisableOtherLightsToggle()
         {
             disableOtherLights = new JSONStorableBool("Switch off other lights", false);
-            UIDynamicToggle uiToggle = CreateToggle(disableOtherLights, rightSide);
+            UIDynamicToggle uiToggle = CreateToggle(disableOtherLights);
             disableOtherLights.toggle.onValueChanged.AddListener(val =>
             {
                 if(val)
@@ -168,7 +167,6 @@ namespace Illumination
         {
             JSONStorableString storable = new JSONStorableString(name, UI.FormatUsage(title, text));
             UIDynamicTextField field = CreateTextField(storable, true);
-            //field.backgroundColor = UI.defaultPluginBgColor;
             return field;
         }
 
