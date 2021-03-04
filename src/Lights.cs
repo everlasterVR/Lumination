@@ -415,11 +415,13 @@ namespace Illumination
 
         private void OnRemoveAtom(Atom atom)
         {
-            //light atom added by plugin was removed elsewhere
             string uid = atom.uid;
             if(atomUidToGuid.ContainsKey(uid))
             {
-                DestroyLightControlUI(uid);
+                if(selectedUid == uid)
+                {
+                    DestroyLightControlUI(uid);
+                }
 
                 string guid = atomUidToGuid[uid];
                 LightControl lc = lightControls[guid];
@@ -427,7 +429,11 @@ namespace Illumination
                 atomUidToGuid.Remove(uid);
                 RemoveButton(lc.uiButton);
                 Destroy(lc);
-                RefreshUI(atomUidToGuid?.Keys.FirstOrDefault() ?? "");
+
+                if(selectedUid == uid)
+                {
+                    RefreshUI(atomUidToGuid?.Keys.FirstOrDefault() ?? "");
+                }
             }
         }
 
