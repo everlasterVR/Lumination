@@ -35,6 +35,7 @@ namespace Illumination
 
         private bool? restoringFromJson;
         private bool? removedFromPluginUI;
+        private bool uiOpenPrevFrame = false;
 
         public override void Init()
         {
@@ -348,6 +349,7 @@ namespace Illumination
             //log.Message($"CreateLightControlUI: uid {uid}");
             LightControl lc = lightControls[atomUidToGuid[uid]];
             lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val, true);
+            lc.SetOnStyle(true);
 
             colorPickerSpacer = UISpacer(CalculateLeftSpacerHeight());
             lightColorPicker = CreateColorPicker(lc.lightColor);
@@ -556,10 +558,26 @@ namespace Illumination
         {
             try
             {
-                if(atomUidToGuid != null && atomUidToGuid.ContainsKey(selectedUid))
+                bool uiOpen = UITransform.gameObject.activeInHierarchy;
+                if(uiOpen == uiOpenPrevFrame)
                 {
-                    lightControls[atomUidToGuid[selectedUid]].SetOnStyle(UITransform.gameObject.activeInHierarchy);
+                    return;
                 }
+
+                atomUidToGuid?.ToList().ForEach(kvp =>
+                {
+                    LightControl lc = lightControls[kvp.Value];
+                    if(kvp.Key == selectedUid)
+                    {
+                        lc.uiButton.label = UI.LightButtonLabel(kvp.Key, lc.on.val, true);
+                        lc.SetOnStyle(uiOpen);
+                    }
+                    else
+                    {
+                        lc.uiButton.label = UI.LightButtonLabel(kvp.Key, lc.on.val);
+                    }
+                });
+                uiOpenPrevFrame = uiOpen;
             }
             catch(Exception e)
             {
