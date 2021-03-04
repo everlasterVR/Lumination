@@ -1,4 +1,6 @@
-﻿using System;
+﻿using SimpleJSON;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,9 +11,10 @@ namespace Illumination
         private Log log = new Log(nameof(Manager));
         private const string version = "<Version>";
 
+        private JSONStorableBool enablePositionParentLink;
         private string disableOtherLightsLabel = "Disable other point and spot lights";
         private JSONStorableBool disableOtherLights;
-        private List<Atom> disabledLights = new List<Atom>();
+        private Dictionary<string, Atom> disabledLights = new Dictionary<string, Atom>();
 
         public override void Init()
         {
@@ -92,17 +95,17 @@ namespace Illumination
 
         private void EnablePositionParentLinkToggle()
         {
-            JSONStorableBool storable = new JSONStorableBool("Enable position parent link", false);
-            RegisterBool(storable);
-            UIDynamicToggle uiToggle = CreateToggle(storable);
-            storable.toggle.onValueChanged.AddListener(val => { });
+            enablePositionParentLink = new JSONStorableBool("Enable position parent link", false);
+            UIDynamicToggle uiToggle = CreateToggle(enablePositionParentLink);
+            uiToggle.height = 100f;
+            enablePositionParentLink.toggle.onValueChanged.AddListener(val => { });
         }
 
         private void DisableOtherLightsToggle()
         {
-            disableOtherLights = new JSONStorableBool("Disable other point and spot lights", false);
-            RegisterBool(disableOtherLights);
+            disableOtherLights = new JSONStorableBool("Disable other point and spot InvisibleLights", false);
             UIDynamicToggle uiToggle = CreateToggle(disableOtherLights);
+            uiToggle.height = 100f;
             disableOtherLights.toggle.onValueChanged.AddListener(val =>
             {
                 if(val)
@@ -123,7 +126,7 @@ namespace Illumination
 
         private bool DisableAtomIfIsOtherLight(Atom atom)
         {
-            if(disableOtherLights == null || !disableOtherLights.val)
+            if(!atom.on || disableOtherLights == null || !disableOtherLights.val)
             {
                 return false;
             }
@@ -136,12 +139,9 @@ namespace Illumination
             Light light = atom.GetComponentInChildren<Light>();
             if(light.type == LightType.Point || light.type == LightType.Spot)
             {
-                if(atom.on)
-                {
-                    atom.ToggleOn();
-                    disabledLights.Add(atom);
-                    return true;
-                }
+                atom.ToggleOn();
+                disabledLights.Add(atom.uid, atom);
+                return true;
             }
 
             return false;
@@ -149,7 +149,7 @@ namespace Illumination
 
         private void EnableDisabledLights()
         {
-            disabledLights?.ForEach(atom =>
+            disabledLights?.Values.ToList().ForEach(atom =>
             {
                 if(!atom.on)
                 {
@@ -169,9 +169,9 @@ namespace Illumination
 
         private void OnRemoveAtom(Atom atom)
         {
-            if(disabledLights.Contains(atom))
+            if(disabledLights.ContainsKey(atom.uid))
             {
-                disabledLights.Remove(atom);
+                disabledLights.Remove(atom.uid);
             }
         }
 
@@ -185,6 +185,46 @@ namespace Illumination
             {
                 log.Error($"{e}");
             }
+        }
+
+        public override JSONClass GetJSON(bool includePhysical = true, bool includeAppearance = true, bool forceStore = false)
+        {
+            JSONClass json = base.GetJSON(includePhysical, includeAppearance, forceStore);
+            json["enablePositionParentLink"].AsBool = enablePositionParentLink.val;
+            json["disableOtherLights"].AsBool = disableOtherLights.val;
+            json["disabledLights"] = new JSONArray();
+            disabledLights.Keys.ToList().ForEach(uid => json["disabledLights"].Add(uid));
+            needsStore = true;
+            return json;
+        }
+
+        public override void RestoreFromJSON(JSONClass json, bool restorePhysical = true, bool restoreAppearance = true, JSONArray presetAtoms = null, bool setMissingToDefault = true)
+        {
+            base.RestoreFromJSON(json, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
+            StartCoroutine(RestoreFromJSONInternal(json));
+        }
+
+        private IEnumerator RestoreFromJSONInternal(JSONClass json)
+        {
+            yield return new WaitForEndOfFrame();
+
+            enablePositionParentLink.val = json["enablePositionParentLink"].AsBool;
+            disableOtherLights.val = json["disableOtherLights"].AsBool;
+            foreach(JSONNode node in json["disabledLights"].AsArray)
+            {
+                string uid = node.Value;
+                if(!disabledLights.ContainsKey(uid))
+                {
+                    disabledLights.Add(uid, GetAtomById(uid));
+                }
+            }
+
+            foreach(var item in disabledLights)
+            {
+                log.Message($"{item.Key} {item.Value.uid}");
+            }
+
+            DisableOtherPointAndSpotLights();
         }
 
         private void OnDisable()
