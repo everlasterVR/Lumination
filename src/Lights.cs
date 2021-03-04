@@ -120,6 +120,7 @@ namespace Illumination
             StartCoroutine(Tools.CreateAtomCo(Const.ATOM_TYPE, GenerateUID("Spot"), (atom) =>
             {
                 AddExistingILAtomToPlugin(atom, "Spot");
+                atom.transform.forward = Vector3.down;
                 RefreshUI(atom.uid);
             }));
         }

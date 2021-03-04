@@ -142,7 +142,7 @@ namespace Illumination
 
         private void PositionParentLinkToggle(bool rightSide = false)
         {
-            enablePositionParentLink = new JSONStorableBool("Parent link position to Target", false);
+            enablePositionParentLink = new JSONStorableBool("Parent link position to Target Atom", false);
             UIDynamicToggle uiToggle = CreateToggle(enablePositionParentLink, rightSide);
             enablePositionParentLink.toggle.onValueChanged.AddListener(val => { });
         }
@@ -177,7 +177,6 @@ namespace Illumination
             UIDynamic spacer = CreateSpacer(rightSide);
             spacer.height = height;
         }
-
 
         private void DisableOtherPointAndSpotLights()
         {
