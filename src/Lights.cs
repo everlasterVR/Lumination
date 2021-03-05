@@ -146,7 +146,7 @@ namespace Lumination
         {
             if(lightControls.Count >= 6)
             {
-                log.Message("You have the maximum number of pixel lights.");
+                log.Message("You have the maximum number of lights.");
                 return;
             }
 
@@ -410,6 +410,7 @@ namespace Lumination
             distanceFromTargetSlider = CreateSlider(lc.distanceFromTarget, true);
             distanceFromTargetSlider.valueFormat = "F3";
             distanceFromTargetSlider.label = "Distance from Target";
+            lc.SetSliderClickMonitor(distanceFromTargetSlider.slider.gameObject.AddComponent<PointerStatus>());
 
             lightTypeSpacer = UISpacer(10, true);
             lightTypePopup = CreatePopup(lc.lightType, true);
