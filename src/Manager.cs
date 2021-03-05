@@ -12,20 +12,14 @@ namespace Lumination
         private const string version = "<Version>";
 
         private JSONStorableBool enablePositionParentLink;
-        private string disableOtherLightsLabel = "Disable other point and spot lights";
-        private JSONStorableBool disableOtherLights;
-        private Dictionary<string, Atom> disabledLights = new Dictionary<string, Atom>();
+        private string switchOffOtherLightsLabel = "Switch off other point and spot lights";
+        private JSONStorableBool switchOffOtherLights;
+        private Dictionary<string, Atom> switchedOffLights = new Dictionary<string, Atom>();
 
         public override void Init()
         {
             try
             {
-                if(containingAtom.type != "SubScene")
-                {
-                    log.Error($"Load to a SubsScene Atom, not {containingAtom.type}.");
-                    return;
-                }
-
                 InitUILeft();
                 InitUIRight();
 
@@ -148,13 +142,13 @@ namespace Lumination
 
         private void DisableOtherLightsToggle()
         {
-            disableOtherLights = new JSONStorableBool("Switch off other lights", false);
-            UIDynamicToggle uiToggle = CreateToggle(disableOtherLights);
-            disableOtherLights.toggle.onValueChanged.AddListener(val =>
+            switchOffOtherLights = new JSONStorableBool("Switch off other lights", false);
+            UIDynamicToggle uiToggle = CreateToggle(switchOffOtherLights);
+            switchOffOtherLights.toggle.onValueChanged.AddListener(val =>
             {
                 if(val)
                 {
-                    DisableOtherPointAndSpotLights();
+                    SwitchOffOtherLights();
                 }
                 else
                 {
@@ -176,19 +170,25 @@ namespace Lumination
             spacer.height = height;
         }
 
-        private void DisableOtherPointAndSpotLights()
+        private void SwitchOffOtherLights()
         {
-            GetSceneAtoms().ForEach(atom => DisableAtomIfIsOtherLight(atom));
+            GetSceneAtoms().ForEach(atom => SwitchOffIfNotInSubscene(atom));
         }
 
-        private bool DisableAtomIfIsOtherLight(Atom atom)
+        private bool SwitchOffIfNotInSubscene(Atom atom)
         {
-            if(!atom.on || disableOtherLights == null || !disableOtherLights.val)
+            if(!atom.on || switchOffOtherLights == null || !switchOffOtherLights.val)
             {
                 return false;
             }
 
-            if(atom.type != Const.ATOM_TYPE || atom.uid.StartsWith(Const.UID_PREFIX))
+            if(atom.type != Const.INVLIGHT)
+            {
+                return false;
+            }
+
+            //atom in current subscene
+            if(atom.containingSubScene != null && atom.containingSubScene.containingAtom.uid == containingAtom.uid)
             {
                 return false;
             }
@@ -198,7 +198,7 @@ namespace Lumination
             if(lightType == "Point" || lightType == "Spot")
             {
                 light.SetBoolParamValue("on", false);
-                disabledLights.Add(atom.uid, atom);
+                switchedOffLights.Add(atom.uid, atom);
                 return true;
             }
 
@@ -207,7 +207,7 @@ namespace Lumination
 
         private void EnableDisabledLights()
         {
-            disabledLights?.Values.ToList().ForEach(atom =>
+            switchedOffLights?.Values.ToList().ForEach(atom =>
             {
                 if(atom.on)
                 {
@@ -219,18 +219,18 @@ namespace Lumination
 
         private void OnAddAtom(Atom atom)
         {
-            bool wasDisabled = DisableAtomIfIsOtherLight(atom);
+            bool wasDisabled = SwitchOffIfNotInSubscene(atom);
             if(wasDisabled)
             {
-                log.Message($"New {Const.ATOM_TYPE} '{atom.uid}' was automatically disabled because '{disableOtherLightsLabel}' is checked in plugin UI.");
+                log.Message($"New {Const.INVLIGHT} '{atom.uid}' was automatically disabled because '{switchOffOtherLightsLabel}' is checked in plugin UI.");
             }
         }
 
         private void OnRemoveAtom(Atom atom)
         {
-            if(disabledLights.ContainsKey(atom.uid))
+            if(switchedOffLights.ContainsKey(atom.uid))
             {
-                disabledLights.Remove(atom.uid);
+                switchedOffLights.Remove(atom.uid);
             }
         }
 
@@ -238,7 +238,7 @@ namespace Lumination
         {
             try
             {
-                DisableOtherPointAndSpotLights();
+                SwitchOffOtherLights();
             }
             catch(Exception e)
             {
@@ -250,9 +250,9 @@ namespace Lumination
         {
             JSONClass json = base.GetJSON(includePhysical, includeAppearance, forceStore);
             json["enablePositionParentLink"].AsBool = enablePositionParentLink.val;
-            json["disableOtherLights"].AsBool = disableOtherLights.val;
-            json["disabledLights"] = new JSONArray();
-            disabledLights.Keys.ToList().ForEach(uid => json["disabledLights"].Add(uid));
+            json["switchOffOtherLights"].AsBool = switchOffOtherLights.val;
+            json["switchedOffLights"] = new JSONArray();
+            switchedOffLights.Keys.ToList().ForEach(uid => json["switchedOffLights"].Add(uid));
             needsStore = true;
             return json;
         }
@@ -268,17 +268,17 @@ namespace Lumination
             yield return new WaitForEndOfFrame();
 
             enablePositionParentLink.val = json["enablePositionParentLink"].AsBool;
-            disableOtherLights.val = json["disableOtherLights"].AsBool;
-            foreach(JSONNode node in json["disabledLights"].AsArray)
+            switchOffOtherLights.val = json["switchOffOtherLights"].AsBool;
+            foreach(JSONNode node in json["switchedOffLights"].AsArray)
             {
                 string uid = node.Value;
-                if(!disabledLights.ContainsKey(uid))
+                if(!switchedOffLights.ContainsKey(uid))
                 {
-                    disabledLights.Add(uid, GetAtomById(uid));
+                    switchedOffLights.Add(uid, GetAtomById(uid));
                 }
             }
 
-            DisableOtherPointAndSpotLights();
+            SwitchOffOtherLights();
         }
 
         private void OnDisable()

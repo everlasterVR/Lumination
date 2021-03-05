@@ -12,6 +12,7 @@ namespace Lumination
     internal class Lights : MVRScript
     {
         private Log log = new Log(nameof(Lights));
+        private FreeControllerV3 control;
 
         private Dictionary<string, LightControl> lightControls = new Dictionary<string, LightControl>();
         private SortedDictionary<string, string> atomUidToGuid = new SortedDictionary<string, string>();
@@ -42,10 +43,24 @@ namespace Lumination
         {
             try
             {
+                if(containingAtom.type != "SubScene")
+                {
+                    log.Error($"Add to a SubsScene atom, not {containingAtom.type}.");
+                    return;
+                }
+
+                control = containingAtom.freeControllers.First();
+
                 InitUILeft();
                 SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
                 SuperController.singleton.onAtomUIDRenameHandlers += new SuperController.OnAtomUIDRename(OnRenameAtom);
-                StartCoroutine(AddExistingILAtoms((uid) => RefreshUI(uid)));
+                IEnumerable<Atom> subSceneAtoms = containingAtom.subSceneComponent.atomsInSubScene;
+                if(!containingAtom.uid.StartsWith(Const.SUBSCENE_UID))
+                {
+                    RenameSubScene(subSceneAtoms);
+                }
+
+                StartCoroutine(AddILAtomsInSubScene(subSceneAtoms, (uid) => RefreshUI(uid)));
             }
             catch(Exception e)
             {
@@ -82,7 +97,22 @@ namespace Lumination
             removeLightButton.button.onClick.AddListener(() => RemoveSelectedInvisibleLight());
         }
 
-        private IEnumerator AddExistingILAtoms(Action<string> callback)
+        private void RenameSubScene(IEnumerable<Atom> subSceneAtoms)
+        {
+            bool containsNonILAtoms = subSceneAtoms
+                .Where(atom => atom.type != Const.INVLIGHT).ToList()
+                .Count > 0;
+            if(containsNonILAtoms)
+            {
+                log.Message($"Not renamed.");
+                return;
+            }
+
+            SuperController.singleton.RenameAtom(containingAtom, Tools.NewUID(Const.SUBSCENE_UID));
+        }
+
+        //TODO get atoms in subscene
+        private IEnumerator AddILAtomsInSubScene(IEnumerable<Atom> subSceneAtoms, Action<string> callback)
         {
             yield return new WaitForEndOfFrame();
 
@@ -91,18 +121,19 @@ namespace Lumination
                 yield return null;
             }
 
-            GetSceneAtoms()
-                .Where(atom => atom.type == Const.ATOM_TYPE && atom.uid.StartsWith(Const.UID_PREFIX) && !atomUidToGuid.ContainsKey(atom.uid))
+            subSceneAtoms
+                .Where(atom => atom.type == Const.INVLIGHT && !atomUidToGuid.ContainsKey(atom.uid))
                 .OrderBy(atom => atom.uid).ToList()
                 .ForEach(atom =>
                 {
-                    Light light = atom.GetComponentInChildren<Light>();
-                    if(light.type != LightType.Point && light.type != LightType.Spot)
+                    JSONStorable light = atom.GetStorableByID("Light");
+                    string lightType = light.GetStringChooserParamValue("type");
+                    if(lightType != "Point" && lightType != "Spot")
                     {
                         return;
                     }
 
-                    AddExistingILAtomToPlugin(atom, $"{light.type}", true);
+                    AddExistingILAtomToPlugin(atom, lightType, true);
                 });
 
             if(restoringFromJson == null)
@@ -119,9 +150,9 @@ namespace Lumination
                 return;
             }
 
-            string basename = GenerateBasename("Spot");
-            StartCoroutine(Tools.CreateAtomCo(Const.ATOM_TYPE, Tools.NewUID(basename), (atom) =>
+            StartCoroutine(Tools.CreateAtomCo(Const.INVLIGHT, Tools.NewUID("Spot"), (atom) =>
             {
+                atom.parentAtom = containingAtom; //add atom to subscene
                 AddExistingILAtomToPlugin(atom, "Spot", false, (lc) =>
                 {
                     lc.intensity.val = 1.2f;
@@ -146,15 +177,15 @@ namespace Lumination
                     new SuperController.SelectControllerCallback(targetCtrl =>
                     {
                         Atom atom = targetCtrl.containingAtom;
-                        if(atom.type != Const.ATOM_TYPE)
+                        if(atom.type != Const.INVLIGHT)
                         {
-                            log.Message($"Selected atom is not an {Const.ATOM_TYPE} atom!");
+                            log.Message($"Selected atom is not an {Const.INVLIGHT} atom!");
                             return;
                         }
 
                         if(atomUidToGuid.ContainsKey(atom.uid))
                         {
-                            log.Message($"Selected {Const.ATOM_TYPE} is already added!");
+                            log.Message($"Selected {Const.INVLIGHT} is already added!");
                             return;
                         }
 
@@ -184,21 +215,13 @@ namespace Lumination
             }
         }
 
-        private string GenerateBasename(string lightType, string aimAt = null)
-        {
-            string name = Const.UID_PREFIX + lightType;
-            if(!string.IsNullOrEmpty(aimAt))
-            {
-                name += $"-{aimAt}";
-            }
-            return name;
-        }
-
         private string ParseBasename(string uid)
         {
             try
             {
-                return Regex.Split(uid, "\\d")[0];
+                string excludeNum = Regex.Split(uid, "#\\d")[0];
+                string excludeSubscene = Regex.Split(excludeNum, $"{containingAtom.uid}/")[1];
+                return excludeSubscene;
             }
             catch(Exception)
             {
@@ -209,7 +232,7 @@ namespace Lumination
         private void AddExistingILAtomToPlugin(Atom atom, string lightType, bool updateUid, Action<LightControl> callback = null)
         {
             LightControl lc = gameObject.AddComponent<LightControl>();
-            lc.Init(atom, lightType);
+            lc.Init(atom.GetStorableByID("Light"), FindControlFromSubScene(atom.uid), lightType);
             if(updateUid)
             {
                 UpdateAtomUID(lc); //ensure name is correct when reloading plugin
@@ -223,6 +246,15 @@ namespace Lumination
             {
                 callback(lc);
             }
+        }
+
+        //must get control from subscene's children because the atom parented to subscene doesn't have a child FreeControllerV3
+        private FreeControllerV3 FindControlFromSubScene(string uid)
+        {
+            return containingAtom
+                .GetComponentsInChildren<FreeControllerV3>()
+                .Where(it => it.containingAtom.uid == uid)
+                .First();
         }
 
         private void RemoveSelectedInvisibleLight()
@@ -394,6 +426,8 @@ namespace Lumination
 
             selectTargetButton.button.onClick.AddListener(() => StartCoroutine(lc.OnSelectTarget((targetString) =>
             {
+                control.selected = true;
+                control.ShowGUI();
                 UpdateAtomUID(lc);
                 selectTargetButton.label = UI.SelectTargetButtonLabel(targetString);
             })));
@@ -410,12 +444,14 @@ namespace Lumination
 
         private void UpdateAtomUID(LightControl lc)
         {
-            string basename = GenerateBasename(lc.lightType.val, lc.GetButtonLabelTargetString());
-            if(basename == ParseBasename(lc.light.containingAtom.uid))
+            Atom atom = lc.light.containingAtom;
+            string aimAt = lc.GetButtonLabelTargetString();
+            string basename = lc.lightType.val + (string.IsNullOrEmpty(aimAt) ? "" : $"-{aimAt}");
+            if(basename == ParseBasename(atom.uid))
             {
                 return; //prevent rename of atom if only the number sequence differs
             }
-            SuperController.singleton.RenameAtom(lc.light.containingAtom, Tools.NewUID(basename));
+            atom.SetUID(Tools.NewUID(basename));
         }
 
         //aligns color picker to the plugin UI lower edge based on the number of spotlights
@@ -552,7 +588,7 @@ namespace Lumination
             LightControl lc = gameObject.AddComponent<LightControl>();
 
             //duplicated from AddExistingILAtomToPlugin
-            lc.InitFromJson(atom, lightJson);
+            lc.InitFromJson(atom.GetStorableByID("Light"), FindControlFromSubScene(atomUid), lightJson);
             lc.uiButton = SelectLightButton(atomUid, lc.on.val);
             string guid = Guid.NewGuid().ToString();
             atomUidToGuid.Add(atomUid, guid);

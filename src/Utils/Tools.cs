@@ -35,7 +35,7 @@ namespace Lumination
 
             for(int i = 2; i < 1000; i++)
             {
-                string uid = basename + i;
+                string uid = $"{basename}#{i}";
                 if(!uids.Contains(uid))
                 {
                     return uid;

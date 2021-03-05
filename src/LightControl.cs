@@ -35,22 +35,22 @@ namespace Lumination
 
         public string prevLightType;
 
-        public void Init(Atom lightAtom, string lightType)
+        public void Init(JSONStorable light, FreeControllerV3 control, string lightType)
         {
-            light = lightAtom.GetStorableByID("Light");
-            control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+            this.light = light;
+            this.control = control;
             SetOnStyle();
             activeEnableLookAtVal = lightType == "Spot";
             activeAutoSpotAngleVal = false;
             InitStorables(lightTypeVal: lightType);
         }
 
-        public void InitFromJson(Atom lightAtom, JSONClass json)
+        public void InitFromJson(JSONStorable light, FreeControllerV3 control, JSONClass json)
         {
             try
             {
-                light = lightAtom.GetStorableByID("Light");
-                control = lightAtom.gameObject.GetComponentInChildren<FreeControllerV3>();
+                this.light = light;
+                this.control = control;
                 SetOnStyle();
                 bool isSpotLight = light.GetStringChooserParamValue("type") == "Spot";
                 activeEnableLookAtVal = isSpotLight && json["enableLookAt"].AsBool;
@@ -73,7 +73,7 @@ namespace Lumination
 
                     if(target == null)
                     {
-                        log.Message($"Unable to point '{lightAtom.uid}' at atom " +
+                        log.Message($"Unable to point '{light.containingAtom.uid}' at atom " +
                             $"'{aimingAtAtomUid}' target control '{aimingAtControl}': " +
                             $"target mentioned in saved JSON but not found in scene.");
                     }
@@ -86,7 +86,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"Error initalizing from JSON for atom '{lightAtom?.name}': {e}");
+                log.Error($"Error initalizing from JSON for atom '{light?.containingAtom?.uid}': {e}");
             }
         }
 

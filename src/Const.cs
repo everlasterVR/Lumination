@@ -2,7 +2,7 @@
 {
     public static class Const
     {
-        public const string UID_PREFIX = "IL_";
-        public const string ATOM_TYPE = "InvisibleLight";
+        public const string SUBSCENE_UID = "Lum";
+        public const string INVLIGHT = "InvisibleLight";
     }
 }
