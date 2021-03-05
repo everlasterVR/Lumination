@@ -342,13 +342,13 @@ namespace Lumination
                 {
                     RemoveToggle(enableLookAtToggle);
                 }
-                if(autoIntensityToggle != null)
-                {
-                    RemoveToggle(autoIntensityToggle);
-                }
                 if(autoRangeToggle != null)
                 {
                     RemoveToggle(autoRangeToggle);
+                }
+                if(autoIntensityToggle != null)
+                {
+                    RemoveToggle(autoIntensityToggle);
                 }
                 if(autoSpotAngleToggle != null)
                 {
@@ -367,13 +367,13 @@ namespace Lumination
                 {
                     RemovePopup(lightTypePopup);
                 }
-                if(intensitySlider != null)
-                {
-                    RemoveSlider(intensitySlider);
-                }
                 if(rangeSlider != null)
                 {
                     RemoveSlider(rangeSlider);
+                }
+                if(intensitySlider != null)
+                {
+                    RemoveSlider(intensitySlider);
                 }
                 if(spotAngleSlider != null)
                 {
@@ -404,8 +404,8 @@ namespace Lumination
             selectTargetButton = CreateButton(UI.SelectTargetButtonLabel(lc.GetTargetString()), true);
             selectTargetButton.height = 120;
             enableLookAtToggle = CreateToggle(lc.enableLookAt, true);
-            autoIntensityToggle = CreateToggle(lc.autoIntensity, true);
             autoRangeToggle = CreateToggle(lc.autoRange, true);
+            autoIntensityToggle = CreateToggle(lc.autoIntensity, true);
             autoSpotAngleToggle = CreateToggle(lc.autoSpotAngle, true);
             distanceFromTargetSlider = CreateSlider(lc.distanceFromTarget, true);
             distanceFromTargetSlider.valueFormat = "F3";
@@ -413,11 +413,11 @@ namespace Lumination
 
             lightTypeSpacer = UISpacer(10, true);
             lightTypePopup = CreatePopup(lc.lightType, true);
+            rangeSlider = CreateSlider(lc.range, true);
+            rangeSlider.label = "Range";
             intensitySlider = CreateSlider(lc.intensity, true);
             intensitySlider.valueFormat = "F3";
             intensitySlider.label = "Intensity";
-            rangeSlider = CreateSlider(lc.range, true);
-            rangeSlider.label = "Range";
             spotAngleSlider = CreateSlider(lc.spotAngle, true);
             spotAngleSlider.label = "Spot angle";
             shadowStrengthSlider = CreateSlider(lc.shadowStrength, true);
@@ -439,6 +439,7 @@ namespace Lumination
 
             lc.SetInteractableElements();
             lc.AddInteractableListeners();
+            lc.AddAutoToggleListeners();
         }
 
         private void UpdateAtomUID(LightControl lc)

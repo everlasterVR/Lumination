@@ -17,19 +17,24 @@ namespace Lumination
         public FreeControllerV3 target;
         public UIDynamicButton uiButton;
 
+        private float baseIntensityFactor;
+        private float rangeDiff;
+        private float spotBaseWidth;
+
         public JSONStorableBool on;
         public JSONStorableColor lightColor;
         public JSONStorableBool enableLookAt;
         private bool activeEnableLookAtVal;
-        public JSONStorableBool autoIntensity;
         public JSONStorableBool autoRange;
+        public JSONStorableBool autoIntensity;
+        private bool activeAutoIntensityVal;
         public JSONStorableBool autoSpotAngle;
         private bool activeAutoSpotAngleVal;
         public JSONStorableFloat distanceFromTarget;
 
         public JSONStorableStringChooser lightType;
-        public JSONStorableFloat intensity;
         public JSONStorableFloat range;
+        public JSONStorableFloat intensity;
         public JSONStorableFloat spotAngle;
         public JSONStorableFloat shadowStrength;
 
@@ -42,6 +47,7 @@ namespace Lumination
             this.control = control;
             SetOnStyle();
             activeEnableLookAtVal = lightType == "Spot";
+            activeAutoIntensityVal = false;
             activeAutoSpotAngleVal = false;
             InitStorables(lightTypeVal: lightType);
         }
@@ -55,9 +61,9 @@ namespace Lumination
                 SetOnStyle();
                 bool isSpotLight = light.GetStringChooserParamValue("type") == "Spot";
                 activeEnableLookAtVal = isSpotLight && json["enableLookAt"].AsBool;
+                activeAutoIntensityVal = json["autoIntensity"].AsBool;
                 activeAutoSpotAngleVal = isSpotLight && json["autoSpotAngle"].AsBool;
                 InitStorables(
-                    json["autoIntensity"].AsBool,
                     json["autoRange"].AsBool
                 );
 
@@ -92,7 +98,6 @@ namespace Lumination
         }
 
         private void InitStorables(
-            bool autoIntensityVal = false,
             bool autoRangeVal = false,
             string lightTypeVal = null
         )
@@ -100,16 +105,15 @@ namespace Lumination
             on = light.GetBoolJSONParam("on");
             lightColor = Tools.CopyColorStorable(light.GetColorJSONParam("color"), true);
             enableLookAt = new JSONStorableBool("Enable aiming at Target", activeEnableLookAtVal);
-            autoIntensity = new JSONStorableBool("Adjust intensity relative to Target", autoIntensityVal);
             autoRange = new JSONStorableBool("Adjust range relative to Target", autoRangeVal);
+            autoIntensity = new JSONStorableBool("Adjust intensity relative to Target", activeAutoIntensityVal);
             autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to Target", activeAutoSpotAngleVal);
-            distanceFromTarget = new JSONStorableFloat("Distance from Target", 1f, 0f, 25f);
+            distanceFromTarget = new JSONStorableFloat("Distance from Target", 0f, 0f, 25f);
             lightType = CreateLightTypeStorable(lightTypeVal);
-            intensity = Tools.CopyFloatStorable(light.GetFloatJSONParam("intensity"), true);
             range = Tools.CopyFloatStorable(light.GetFloatJSONParam("range"), true);
+            intensity = Tools.CopyFloatStorable(light.GetFloatJSONParam("intensity"), true);
             spotAngle = Tools.CopyFloatStorable(light.GetFloatJSONParam("spotAngle"), true);
             shadowStrength = Tools.CopyFloatStorable(light.GetFloatJSONParam("shadowStrength"), true);
-
             prevLightType = lightType.val;
         }
 
@@ -175,6 +179,7 @@ namespace Lumination
                     waiting = false;
                     target = targetCtrl;
                     targetUid = string.Copy(target.containingAtom.uid);
+                    //distanceFromTarget.slider.interactable = true;
                 })
             );
 
@@ -227,29 +232,30 @@ namespace Lumination
 
         public void SetInteractableElements()
         {
-            //interactables
-            UpdateInteractableByAutoIntensity(autoIntensity.val);
+            distanceFromTarget.slider.interactable = target != null;
             UpdateInteractableByAutoRange(autoRange.val);
+            UpdateInteractableByAutoIntensity(autoIntensity.val);
             UpdateInteractableByAutoSpotAngle(autoSpotAngle.val);
             UpdateInteractableByType(lightType.val);
         }
 
         public void AddInteractableListeners()
         {
-            autoIntensity.toggle.onValueChanged.AddListener(UpdateInteractableByAutoIntensity);
             autoRange.toggle.onValueChanged.AddListener(UpdateInteractableByAutoRange);
+            autoIntensity.toggle.onValueChanged.AddListener(UpdateInteractableByAutoIntensity);
             autoSpotAngle.toggle.onValueChanged.AddListener(UpdateInteractableByAutoSpotAngle);
             lightType.popup.onValueChangeHandlers += new UIPopup.OnValueChange(UpdateInteractableByType);
-        }
-
-        private void UpdateInteractableByAutoIntensity(bool val)
-        {
-            intensity.slider.interactable = !val;
         }
 
         private void UpdateInteractableByAutoRange(bool val)
         {
             range.slider.interactable = !val;
+            autoIntensity.toggle.interactable = val;
+        }
+
+        private void UpdateInteractableByAutoIntensity(bool val)
+        {
+            intensity.slider.interactable = !val;
         }
 
         private void UpdateInteractableByAutoSpotAngle(bool val)
@@ -265,16 +271,100 @@ namespace Lumination
             spotAngle.slider.interactable = isSpot && !autoSpotAngle.val;
         }
 
-        private void FixedUpdate()
+        public void AddAutoToggleListeners()
         {
-            if(target == null || !enableLookAt.val || lightType.val != "Spot")
+            autoRange.toggle.onValueChanged.AddListener((val) =>
+            {
+                if(control != null && target != null && val)
+                {
+                    rangeDiff = range.val - CalculateDistance();
+                }
+
+                //uncheck autoIntensity toggle if not first adjusting to range
+                if(val)
+                {
+                    autoIntensity.val = activeAutoIntensityVal;
+                }
+                else
+                {
+                    activeAutoIntensityVal = autoIntensity.val;
+                    autoIntensity.val = false;
+                }
+            });
+
+            autoIntensity.toggle.onValueChanged.AddListener((val) =>
+            {
+                if(control != null && target != null && val)
+                {
+                    baseIntensityFactor = intensity.val / range.val;
+                }
+            });
+
+            autoSpotAngle.toggle.onValueChanged.AddListener((val) =>
+            {
+                if(control != null && target != null && val)
+                {
+                    //calculate width of the side of an isosceles triangle opposite to the spot angle
+                    //assuming spot angle is the vertex angle of the triangle
+                    //and distance from target is the height of the triangle
+                    spotBaseWidth = 2 * CalculateDistance() * Mathf.Tan(Mathf.Deg2Rad * spotAngle.val / 2);
+                }
+            });
+        }
+
+        private float CalculateDistance()
+        {
+            return Vector3.Distance(control.followWhenOff.position, target.followWhenOff.position);
+        }
+
+        private void Update()
+        {
+            if(control == null || target == null)
             {
                 return;
             }
 
             try
             {
-                control.transform.LookAt(target.followWhenOff.position);
+                distanceFromTarget.val = CalculateDistance();
+
+                if(autoRange.val)
+                {
+                    //keep the "backdrop length" (rangeDiff) of the light relative to target constant
+                    range.val = distanceFromTarget.val + rangeDiff;
+
+                    if(autoIntensity.val)
+                    {
+                        //keep intensity at target more or less constant if auto-adjusting range
+                        intensity.val = range.val * baseIntensityFactor;
+                    }
+                }
+
+                if(autoSpotAngle.val)
+                {
+                    //calculate angle to match the constant spotVertexAngle based on distance (triangle height)
+                    spotAngle.val = 180 - (2 * Mathf.Rad2Deg * Mathf.Atan((2 * distanceFromTarget.val)/spotBaseWidth));
+                }
+            }
+            catch(Exception e)
+            {
+                log.Error($"{e}");
+            }
+        }
+
+        private void FixedUpdate()
+        {
+            if(control == null || target == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if(enableLookAt.val && lightType.val == "Spot")
+                {
+                    control.transform.LookAt(target.followWhenOff.position);
+                }
             }
             catch(Exception e)
             {
@@ -287,8 +377,8 @@ namespace Lumination
             JSONClass json = new JSONClass();
             json["atomUid"] = light.containingAtom.uid;
             json["enableLookAt"].AsBool = activeEnableLookAtVal;
-            json["autoIntensity"].AsBool = autoIntensity.val;
             json["autoRange"].AsBool = autoRange.val;
+            json["autoIntensity"].AsBool = autoIntensity.val;
             json["autoSpotAngle"].AsBool = activeAutoSpotAngleVal;
             if(target != null)
             {
