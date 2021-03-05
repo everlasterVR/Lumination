@@ -426,8 +426,7 @@ namespace Lumination
 
             selectTargetButton.button.onClick.AddListener(() => StartCoroutine(lc.OnSelectTarget((targetString) =>
             {
-                control.selected = true;
-                control.ShowGUI();
+                SuperController.singleton.SelectController(control);
                 UpdateAtomUID(lc);
                 selectTargetButton.label = UI.SelectTargetButtonLabel(targetString);
             })));
