@@ -152,13 +152,13 @@ namespace Lumination
 
             StartCoroutine(Tools.CreateAtomCo(Const.INVLIGHT, Tools.NewUID("Spot"), (atom) =>
             {
+                atom.transform.forward = Vector3.down;
                 atom.parentAtom = containingAtom; //add atom to subscene
                 AddExistingILAtomToPlugin(atom, "Spot", false, (lc) =>
                 {
                     lc.intensity.val = 1.2f;
                     lc.range.val = 7;
                 });
-                atom.transform.forward = Vector3.down;
                 RefreshUI(atom.uid);
             }));
         }
@@ -485,6 +485,7 @@ namespace Lumination
 
         private void OnRemoveAtom(Atom atom)
         {
+            //light atom controlled by the plugin was removed
             string uid = atom.uid;
             if(atomUidToGuid.ContainsKey(uid))
             {
@@ -506,6 +507,22 @@ namespace Lumination
                     RefreshUI(atomUidToGuid?.Keys.FirstOrDefault() ?? "");
                 }
             }
+
+            //atom targeted by a light was removed
+            lightControls.Values
+                .Where(lc => lc.targetUid == uid).ToList()
+                .ForEach(lc =>
+                {
+                    //sets the removed atom's freeController to null, should automatically be removed later on anyway
+                    //(just to avoid a coroutine here)
+                    lc.target = null;
+                    lc.targetUid = null;
+                    UpdateAtomUID(lc);
+                    if(lc.light.containingAtom.uid == selectedUid)
+                    {
+                        selectTargetButton.label = UI.SelectTargetButtonLabel(lc.GetTargetString());
+                    }
+                });
         }
 
         private void OnRenameAtom(string fromuid, string touid)

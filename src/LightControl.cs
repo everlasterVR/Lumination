@@ -33,6 +33,7 @@ namespace Lumination
         public JSONStorableFloat spotAngle;
         public JSONStorableFloat shadowStrength;
 
+        public string targetUid;
         public string prevLightType;
 
         public void Init(JSONStorable light, FreeControllerV3 control, string lightType)
@@ -120,7 +121,8 @@ namespace Lumination
                 types, //exclude Directional and Area
                 source.defaultVal,
                 "Light Type",
-                (val) => {
+                (val) =>
+                {
                     source.val = val; //update type if type changed in plugin UI
                     OnChooseLightType(val);
                 }
@@ -172,6 +174,7 @@ namespace Lumination
                 {
                     waiting = false;
                     target = targetCtrl;
+                    targetUid = string.Copy(target.containingAtom.uid);
                 })
             );
 
