@@ -1,3 +1,4 @@
+src\Components\PointerStatus.cs
 src\Utils\Log.cs
 src\Utils\Tools.cs
 src\Utils\UI.cs
