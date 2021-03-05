@@ -1,4 +1,4 @@
-﻿namespace Illumination
+﻿namespace Lumination
 {
     public static class Const
     {

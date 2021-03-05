@@ -1,4 +1,4 @@
-﻿namespace Illumination
+﻿namespace Lumination
 {
     public class Log
     {
@@ -11,12 +11,12 @@
 
         public void Error(string message)
         {
-            SuperController.LogError($"{nameof(Illumination)}.{name}: {message}");
+            SuperController.LogError($"{nameof(Lumination)}.{name}: {message}");
         }
 
         public void Message(string message)
         {
-            SuperController.LogMessage($"{nameof(Illumination)}.{name}: {message}");
+            SuperController.LogMessage($"{nameof(Lumination)}.{name}: {message}");
         }
     }
 }

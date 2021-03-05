@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Illumination
+namespace Lumination
 {
     internal class Lights : MVRScript
     {

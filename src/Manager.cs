@@ -4,7 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Illumination
+namespace Lumination
 {
     internal class Manager : MVRScript
     {
@@ -20,9 +20,9 @@ namespace Illumination
         {
             try
             {
-                if(containingAtom.type != "CoreControl")
+                if(containingAtom.type != "SubScene")
                 {
-                    log.Error($"Must be loaded as a Scene Plugin.");
+                    log.Error($"Load to a SubsScene Atom, not {containingAtom.type}.");
                     return;
                 }
 
@@ -40,7 +40,7 @@ namespace Illumination
 
         private void InitUILeft()
         {
-            TitleUITextField($"{nameof(Illumination)} {version}");
+            TitleUITextField($"{nameof(Lumination)} {version}");
 
             UISpacer(15);
             LoadButton();
@@ -73,7 +73,7 @@ namespace Illumination
             rigTargetField.height = 310;
 
             UISpacer(15, true);
-            string other = "Turns off Spot and Point type invisible lights not controlled by Illumination while the plugin is active.";
+            string other = $"Turns off Spot and Point type invisible lights not in this SubScene while {nameof(Lumination)} is active.";
             var otherField = UsageUITextField("other", "Other Settings", other);
             otherField.height = 310;
         }

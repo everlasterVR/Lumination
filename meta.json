@@ -1,17 +1,17 @@
 {
-   "licenseType" : "CC BY-NC-SA", 
+   "licenseType" : "CC BY-SA", 
    "creatorName" : "everlaster", 
-   "packageName" : "Illumination", 
+   "packageName" : "Lumination", 
    "standardReferenceVersionOption" : "Latest", 
    "scriptReferenceVersionOption" : "Exact", 
    "description" : "v<Version>. ",
    "credits" : "", 
    "instructions" : "", 
    "promotionalLink" : "", 
-   "programVersion" : "1.20.77.3", 
+   "programVersion" : "1.20.77.8", 
    "contentList" : [ 
-      "Custom/Scripts/everlaster/Illumination/Illumination.cslist", 
-      "Custom/Scripts/everlaster/Illumination/src"
+      "Custom/Scripts/everlaster/Lumination/Lumination.cslist", 
+      "Custom/Scripts/everlaster/Lumination/src"
    ], 
    "dependencies" : { 
    },

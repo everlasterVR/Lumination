@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Illumination
+namespace Lumination
 {
     public static class Tools
     {
