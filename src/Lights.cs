@@ -186,6 +186,7 @@ namespace Lumination
                     atom.transform.forward = Vector3.down;
                 }
 
+                Tools.MoveToUnoccupiedPosition(atom);
                 atom.parentAtom = containingAtom; //add atom to subscene
 
                 LightControl lc = gameObject.AddComponent<LightControl>();
@@ -281,7 +282,9 @@ namespace Lumination
                     atom.Restore(sourceAtomJSON, true, true, true);
                     atom.LateRestore(sourceAtomJSON, true, true, true);
                     atom.PostRestore();
-                    atom.GetComponentInChildren<Transform>().Translate(0.1f, 0, 0.1f);
+
+                    Transform t = atom.GetComponentInChildren<Transform>();
+                    t.Translate(new Vector3(0.1f, 0, 0.1f), Space.World);
 
                     atom.parentAtom = containingAtom; //add atom to subscene
 

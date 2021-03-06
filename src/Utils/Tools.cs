@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 namespace Lumination
 {
@@ -70,7 +72,7 @@ namespace Lumination
                 source.min,
                 source.max,
                 source.constrained
-                //source.slider.interactable
+            //source.slider.interactable
             );
             copy.val = source.val;
 
@@ -81,6 +83,25 @@ namespace Lumination
             }
 
             return copy;
+        }
+
+        public static void MoveToUnoccupiedPosition(Atom atom)
+        {
+            Vector3[] offsets = {
+                new Vector3(-0.1f, 0, 0.0f),
+                new Vector3(0.1f, 0, 0.0f),
+                new Vector3(0.0f, 0, 0.1f),
+                new Vector3(0.0f, 0, -0.1f)
+            };
+            Transform t = atom.GetComponentInChildren<Transform>();
+            List<Vector3> atomPositions = SuperController.singleton.GetAtoms()
+                .Where(sceneAtom => sceneAtom.uid != atom.uid)
+                .Select(sceneAtom => sceneAtom.GetComponentInChildren<Transform>().position)
+                .ToList();
+            while(atomPositions.Any(pos => Vector3.Distance(pos, t.position) <= 0.1f))
+            {
+                t.Translate(offsets[new System.Random().Next(offsets.Length)], Space.World);
+            }
         }
     }
 }
