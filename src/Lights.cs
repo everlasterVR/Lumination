@@ -32,6 +32,7 @@ namespace Lumination
         private UIDynamicSlider intensitySlider;
         private UIDynamicSlider rangeSlider;
         private UIDynamicSlider spotAngleSlider;
+        private UIDynamicSlider pointBiasSlider;
         private UIDynamicSlider shadowStrengthSlider;
         private UIDynamicSlider distanceFromTargetSlider;
 
@@ -73,6 +74,7 @@ namespace Lumination
         private void InitUILeft()
         {
             AddSpotlightButton();
+            AddPointlightButton();
             AddLightFromSceneButton();
             RemoveLightButton();
             UISpacer(10);
@@ -82,7 +84,14 @@ namespace Lumination
         {
             UIDynamicButton uiButton = CreateButton("Add new spotlight");
             uiButton.buttonColor = UI.lightGreen;
-            uiButton.button.onClick.AddListener(() => AddNewInvisibleLight());
+            uiButton.button.onClick.AddListener(() => AddNewInvisibleLight("Spot"));
+        }
+
+        private void AddPointlightButton()
+        {
+            UIDynamicButton uiButton = CreateButton("Add new point light");
+            uiButton.buttonColor = UI.lightGreen;
+            uiButton.button.onClick.AddListener(() => AddNewInvisibleLight("Point"));
         }
 
         private void AddLightFromSceneButton()
@@ -143,7 +152,7 @@ namespace Lumination
             }
         }
 
-        private void AddNewInvisibleLight()
+        private void AddNewInvisibleLight(string lightType)
         {
             if(lightControls.Count >= 6)
             {
@@ -151,14 +160,21 @@ namespace Lumination
                 return;
             }
 
-            StartCoroutine(Tools.CreateAtomCo(Const.INVLIGHT, Tools.NewUID("Spot"), (atom) =>
+            StartCoroutine(Tools.CreateAtomCo(Const.INVLIGHT, Tools.NewUID(lightType), (atom) =>
             {
-                atom.transform.forward = Vector3.down;
-                atom.parentAtom = containingAtom; //add atom to subscene
-                AddExistingILAtomToPlugin(atom, "Spot", null, false, (lc) =>
+                if(lightType == "Spot")
                 {
-                    lc.intensity.val = 1.2f;
-                    lc.range.val = 7;
+                    atom.transform.forward = Vector3.down;
+                }
+
+                atom.parentAtom = containingAtom; //add atom to subscene
+                AddExistingILAtomToPlugin(atom, lightType, null, false, (lc) =>
+                {
+                    if(lightType == "Spot")
+                    {
+                        lc.intensity.val = 1.2f;
+                        lc.range.val = 7;
+                    }
                 });
                 RefreshUI(atom.uid);
             }));
@@ -308,7 +324,6 @@ namespace Lumination
 
         private void RefreshUI(string uid)
         {
-            //log.Message($"RefreshUI: selectedUid {selectedUid}, uid {uid}");
             if(atomUidToGuid.ContainsKey(selectedUid))
             {
                 DestroyLightControlUI(selectedUid);
@@ -321,19 +336,23 @@ namespace Lumination
                 return;
             }
 
-            CreateLightControlUI(uid);
+            LightControl lc = lightControls[atomUidToGuid[uid]];
+            lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val, true);
+            lc.SetTransformIconStyle(UITransform.gameObject.activeInHierarchy);
+
+            CreateLightControlUI(lc);
+            PostCreateLightControlUI(lc);
             removeLightButton.button.interactable = true;
         }
 
         private void DestroyLightControlUI(string uid)
         {
-            //log.Message($"DestroyLightControlUI: uid {uid}");
             try
             {
                 LightControl lc = lightControls[atomUidToGuid[uid]];
 
                 lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val);
-                lc.SetOnStyle();
+                lc.SetTransformIconStyle();
 
                 if(colorPickerSpacer != null)
                 {
@@ -388,6 +407,10 @@ namespace Lumination
                 {
                     RemoveSlider(spotAngleSlider);
                 }
+                if(pointBiasSlider != null)
+                {
+                    RemoveSlider(pointBiasSlider);
+                }
                 if(shadowStrengthSlider != null)
                 {
                     RemoveSlider(shadowStrengthSlider);
@@ -399,13 +422,8 @@ namespace Lumination
             }
         }
 
-        private void CreateLightControlUI(string uid)
+        private void CreateLightControlUI(LightControl lc)
         {
-            //log.Message($"CreateLightControlUI: uid {uid}");
-            LightControl lc = lightControls[atomUidToGuid[uid]];
-            lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val, true);
-            lc.SetOnStyle(UITransform.gameObject.activeInHierarchy);
-
             colorPickerSpacer = UISpacer(CalculateLeftSpacerHeight());
             lightColorPicker = CreateColorPicker(lc.lightColor);
             lightColorPicker.label = "Light color";
@@ -428,12 +446,24 @@ namespace Lumination
             intensitySlider = CreateSlider(lc.intensity, true);
             intensitySlider.valueFormat = "F3";
             intensitySlider.label = "Intensity";
-            spotAngleSlider = CreateSlider(lc.spotAngle, true);
-            spotAngleSlider.label = "Spot angle";
+            if(lc.lightType.val == "Spot")
+            {
+                spotAngleSlider = CreateSlider(lc.spotAngle, true);
+                spotAngleSlider.label = "Spot angle";
+            }
+            else if(lc.lightType.val == "Point")
+            {
+                pointBiasSlider = CreateSlider(lc.pointBias, true);
+                pointBiasSlider.valueFormat = "F3";
+                pointBiasSlider.label = "Point bias";
+            }
             shadowStrengthSlider = CreateSlider(lc.shadowStrength, true);
             shadowStrengthSlider.valueFormat = "F3";
             shadowStrengthSlider.label = "Shadow strength";
+        }
 
+        private void PostCreateLightControlUI(LightControl lc)
+        {
             selectTargetButton.button.onClick.AddListener(() => StartCoroutine(lc.OnSelectTarget((targetString) =>
             {
                 SuperController.singleton.SelectController(control);
@@ -443,6 +473,11 @@ namespace Lumination
 
             lc.lightType.popup.onValueChangeHandlers += new UIPopup.OnValueChange((value) =>
             {
+                //refresh UI to swap between spot angle and point bias sliders
+                if(lc.prevLightType != value)
+                {
+                    RefreshUI(lc.light.containingAtom.uid);
+                }
                 lc.prevLightType = value;
                 UpdateAtomUID(lc);
             });
@@ -467,9 +502,8 @@ namespace Lumination
         //aligns color picker to the plugin UI lower edge based on the number of spotlights
         private float CalculateLeftSpacerHeight()
         {
-            float buttonHeight = 50;
-            float buttonSpacerHeight = 15;
-            return 477 - (lightControls.Count - 1) * (buttonHeight + buttonSpacerHeight);
+            float btnSpacerHeight = 65;
+            return 682 -(4 * btnSpacerHeight + 10 + (lightControls.Count - 1) * btnSpacerHeight);
         }
 
         private void ToggleLightOn(string uid)
@@ -666,7 +700,7 @@ namespace Lumination
                 if(atomUidToGuid != null && atomUidToGuid.ContainsKey(selectedUid))
                 {
                     LightControl selectedLc = lightControls[atomUidToGuid[selectedUid]];
-                    selectedLc.SetOnStyle(uiOpen);
+                    selectedLc.SetTransformIconStyle(uiOpen);
                     selectedLc.uiButton.label = UI.LightButtonLabel(selectedUid, selectedLc.on.val, true);
                 }
 

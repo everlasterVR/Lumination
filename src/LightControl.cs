@@ -39,6 +39,7 @@ namespace Lumination
         public JSONStorableFloat range;
         public JSONStorableFloat intensity;
         public JSONStorableFloat spotAngle;
+        public JSONStorableFloat pointBias;
         public JSONStorableFloat shadowStrength;
 
         public string targetUid;
@@ -48,7 +49,7 @@ namespace Lumination
         {
             this.light = light;
             this.control = control;
-            SetOnStyle();
+            SetTransformIconStyle();
             activeEnableLookAtVal = lightType == "Spot";
             activeAutoIntensityVal = false;
             activeAutoSpotAngleVal = false;
@@ -61,7 +62,7 @@ namespace Lumination
             {
                 this.light = light;
                 this.control = control;
-                SetOnStyle();
+                SetTransformIconStyle();
                 bool isSpotLight = light.GetStringChooserParamValue("type") == "Spot";
                 activeEnableLookAtVal = isSpotLight && json["enableLookAt"].AsBool;
                 activeAutoIntensityVal = json["autoIntensity"].AsBool;
@@ -116,6 +117,7 @@ namespace Lumination
             range = Tools.CopyFloatStorable(light.GetFloatJSONParam("range"), true);
             intensity = Tools.CopyFloatStorable(light.GetFloatJSONParam("intensity"), true);
             spotAngle = Tools.CopyFloatStorable(light.GetFloatJSONParam("spotAngle"), true);
+            pointBias = Tools.CopyFloatStorable(light.GetFloatJSONParam("pointBias"), true);
             shadowStrength = Tools.CopyFloatStorable(light.GetFloatJSONParam("shadowStrength"), true);
             prevLightType = lightType.val;
         }
@@ -149,11 +151,6 @@ namespace Lumination
             return copy;
         }
 
-        public void SetSliderClickMonitor(PointerStatus pointerStatus)
-        {
-            this.pointerStatus = pointerStatus;
-        }
-
         private void OnChooseLightType(string val)
         {
             //uncheck enable aiming and adjust spot angle if Point light, restore actual values if Spot light
@@ -173,6 +170,11 @@ namespace Lumination
             {
                 throw new ArgumentException($"Invalid type {val}");
             }
+        }
+
+        public void SetSliderClickMonitor(PointerStatus pointerStatus)
+        {
+            this.pointerStatus = pointerStatus;
         }
 
         public IEnumerator OnSelectTarget(Action<string> callback)
@@ -229,7 +231,7 @@ namespace Lumination
             return UI.Capitalize(target.name.Replace("Control", ""));
         }
 
-        public void SetOnStyle(bool selected = false, bool reset = false)
+        public void SetTransformIconStyle(bool selected = false, bool reset = false)
         {
             if(control == null)
             {
@@ -283,7 +285,12 @@ namespace Lumination
 
         private void UpdateInteractableByAutoSpotAngle(bool val)
         {
-            spotAngle.slider.interactable = !val && lightType.val == "Spot";
+            if(lightType.val != "Spot")
+            {
+                return;
+            }
+
+            spotAngle.slider.interactable = !val;
         }
 
         private void UpdateInteractableByType(string val)
@@ -291,7 +298,10 @@ namespace Lumination
             bool isSpot = val == "Spot";
             enableLookAt.toggle.interactable = isSpot;
             autoSpotAngle.toggle.interactable = isSpot;
-            spotAngle.slider.interactable = isSpot && !autoSpotAngle.val;
+            if(isSpot)
+            {
+                spotAngle.slider.interactable = !autoSpotAngle.val;
+            }
         }
 
         public void AddAutoToggleListeners()
@@ -440,12 +450,12 @@ namespace Lumination
 
         private void OnEnable()
         {
-            SetOnStyle();
+            SetTransformIconStyle();
         }
 
         private void OnDisable()
         {
-            SetOnStyle(reset: true);
+            SetTransformIconStyle(reset: true);
         }
     }
 }
