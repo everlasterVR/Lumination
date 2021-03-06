@@ -50,6 +50,7 @@ namespace Lumination
                 }
 
                 control = containingAtom.freeControllers.First();
+                control.SetBoolParamValue("freezeAtomPhysicsWhenGrabbed", false);
 
                 InitUILeft();
                 SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
@@ -111,7 +112,6 @@ namespace Lumination
             SuperController.singleton.RenameAtom(containingAtom, Tools.NewUID(Const.SUBSCENE_UID));
         }
 
-        //TODO get atoms in subscene
         private IEnumerator AddILAtomsInSubScene(IEnumerable<Atom> subSceneAtoms, Action<string> callback)
         {
             yield return new WaitForEndOfFrame();
@@ -402,7 +402,7 @@ namespace Lumination
             lightColorPicker.label = "Light color";
 
             selectTargetButton = CreateButton(UI.SelectTargetButtonLabel(lc.GetTargetString()), true);
-            selectTargetButton.height = 120;
+            selectTargetButton.height = 115;
             enableLookAtToggle = CreateToggle(lc.enableLookAt, true);
             autoRangeToggle = CreateToggle(lc.autoRange, true);
             autoIntensityToggle = CreateToggle(lc.autoIntensity, true);
@@ -460,7 +460,7 @@ namespace Lumination
         {
             float buttonHeight = 50;
             float buttonSpacerHeight = 15;
-            return 482 - (lightControls.Count - 1) * (buttonHeight + buttonSpacerHeight);
+            return 477 - (lightControls.Count - 1) * (buttonHeight + buttonSpacerHeight);
         }
 
         private void ToggleLightOn(string uid)

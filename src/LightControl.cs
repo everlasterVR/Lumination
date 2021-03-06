@@ -210,7 +210,7 @@ namespace Lumination
                 return null;
             }
 
-            return $"{target.containingAtom.uid}:{target.name}";
+            return $"\n{target.containingAtom.uid}:{target.name}";
         }
 
         public string GetButtonLabelTargetString()
@@ -262,6 +262,18 @@ namespace Lumination
         {
             range.slider.interactable = !val;
             autoIntensity.toggle.interactable = val;
+
+            if(val)
+            {
+                //uncheck autoIntensity toggle if autoRange unchecked
+                autoIntensity.val = activeAutoIntensityVal;
+            }
+            else
+            {
+                //restore previously active value if checked
+                activeAutoIntensityVal = autoIntensity.val;
+                autoIntensity.val = false;
+            }
         }
 
         private void UpdateInteractableByAutoIntensity(bool val)
@@ -299,14 +311,6 @@ namespace Lumination
             if(val)
             {
                 rangeDiff = range.val - CalculateDistance();
-                //uncheck autoIntensity toggle if not first adjusting to range
-                autoIntensity.val = activeAutoIntensityVal;
-            }
-            else
-            {
-                //restore previous autoIntensity toggle value when again adjusting to range
-                activeAutoIntensityVal = autoIntensity.val;
-                autoIntensity.val = false;
             }
         }
 
