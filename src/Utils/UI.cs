@@ -8,8 +8,11 @@ namespace Lumination
         public static Color defaultPluginBgColor = new Color32(193, 168, 203, 255);
 
         public static Color black = UnityEngine.Color.black;
+        public static Color gray = new Color(0.4f, 0.4f, 0.4f);
         public static Color lightGray = new Color(0.75f, 0.75f, 0.75f);
         public static Color lightGreen = new Color(0.75f, 1f, 0.75f);
+        public static Color lightPink = new Color(1f, 0.925f, 0.925f);
+        public static Color offGrayRed = new Color(0.45f, 0.4f, 0.4f);
         public static Color pink = new Color(1f, 0.75f, 0.75f);
         public static Color turquoise = new Color(0.5f, 1f, 1f);
         public static Color white = UnityEngine.Color.white;

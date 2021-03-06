@@ -24,12 +24,9 @@ namespace Lumination
         public JSONStorableBool on;
         public JSONStorableColor lightColor;
         public JSONStorableBool enableLookAt;
-        private bool activeEnableLookAtVal;
         public JSONStorableBool autoRange;
         public JSONStorableBool autoIntensity;
-        private bool activeAutoIntensityVal;
         public JSONStorableBool autoSpotAngle;
-        private bool activeAutoSpotAngleVal;
         public JSONStorableFloat distanceFromTarget;
         private float prevDistanceFromTargetVal;
 
@@ -42,7 +39,7 @@ namespace Lumination
         public JSONStorableFloat pointBias;
         public JSONStorableFloat shadowStrength;
 
-        public string targetUid;
+        public bool hasTarget = false;
         public string prevLightType;
 
         public void Init(JSONStorable light, FreeControllerV3 control, string lightType)
@@ -50,9 +47,6 @@ namespace Lumination
             this.light = light;
             this.control = control;
             SetTransformIconStyle();
-            activeEnableLookAtVal = lightType == "Spot";
-            activeAutoIntensityVal = false;
-            activeAutoSpotAngleVal = false;
             InitStorables(lightTypeVal: lightType);
         }
 
@@ -65,10 +59,12 @@ namespace Lumination
                 SetTransformIconStyle();
 
                 bool isSpotLight = light.GetStringChooserParamValue("type") == "Spot";
-                activeEnableLookAtVal = isSpotLight && json["enableLookAt"].AsBool;
-                activeAutoIntensityVal = json["autoIntensity"].AsBool;
-                activeAutoSpotAngleVal = isSpotLight && json["autoSpotAngle"].AsBool;
-                InitStorables(json["autoRange"].AsBool);
+                InitStorables(
+                    isSpotLight && json["enableLookAt"].AsBool,
+                    json["autoRange"].AsBool,
+                    json["autoIntensity"].AsBool,
+                    isSpotLight && json["autoSpotAngle"].AsBool
+                );
 
                 FreeControllerV3 target = null;
                 if(json["aimingAtAtomUid"] != null && json["aimingAtControl"] != null)
@@ -86,15 +82,12 @@ namespace Lumination
                         log.Message($"Unable to point '{light.containingAtom.uid}' at atom " +
                             $"'{aimingAtAtomUid}' target control '{aimingAtControl}': " +
                             $"target mentioned in saved JSON but not found in scene.");
+                        return;
                     }
-                    else
-                    {
-                        control.physicsEnabled = true;
-                        this.target = target;
-                        UpdateRangeDiff(autoRange.val);
-                        UpdateBaseIntensityFactor(autoIntensity.val);
-                        UpdateSpotBaseWidth(autoSpotAngle.val);
-                    }
+
+                    control.physicsEnabled = true;
+                    this.target = target;
+                    hasTarget = true;
                 }
             }
             catch(Exception e)
@@ -104,16 +97,19 @@ namespace Lumination
         }
 
         private void InitStorables(
+            bool enableLookAtVal = false,
             bool autoRangeVal = false,
+            bool autoIntensityVal = false,
+            bool autoSpotAngleVal = false,
             string lightTypeVal = null
         )
         {
             on = light.GetBoolJSONParam("on");
             lightColor = Tools.CopyColorStorable(light.GetColorJSONParam("color"), true);
-            enableLookAt = new JSONStorableBool("Enable aiming at Target", activeEnableLookAtVal);
+            enableLookAt = new JSONStorableBool("Enable aiming at Target", enableLookAtVal);
             autoRange = new JSONStorableBool("Adjust range relative to Target", autoRangeVal);
-            autoIntensity = new JSONStorableBool("Adjust intensity relative to Target", activeAutoIntensityVal);
-            autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to Target", activeAutoSpotAngleVal);
+            autoIntensity = new JSONStorableBool("Adjust intensity relative to Target", autoIntensityVal);
+            autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to Target", autoSpotAngleVal);
             distanceFromTarget = new JSONStorableFloat("Distance from Target", 0f, 0f, 5f, false);
             lightType = CreateLightTypeStorable(lightTypeVal);
             range = Tools.CopyFloatStorable(light.GetFloatJSONParam("range"), true);
@@ -132,11 +128,7 @@ namespace Lumination
                 types, //exclude Directional and Area
                 source.defaultVal,
                 "Light Type",
-                (val) =>
-                {
-                    source.val = val; //update type if type changed in plugin UI
-                    OnChooseLightType(val);
-                }
+                (val) => source.val = val //update type if type changed in plugin UI
             );
             copy.val = lightTypeVal ?? source.val;
 
@@ -151,27 +143,6 @@ namespace Lumination
             };
 
             return copy;
-        }
-
-        private void OnChooseLightType(string val)
-        {
-            //uncheck enable aiming and adjust spot angle if Point light, restore actual values if Spot light
-            if(val == "Spot")
-            {
-                enableLookAt.val = activeEnableLookAtVal;
-                autoSpotAngle.val = activeAutoSpotAngleVal;
-            }
-            else if(val == "Point")
-            {
-                activeEnableLookAtVal = enableLookAt.val;
-                enableLookAt.val = false;
-                activeAutoSpotAngleVal = autoSpotAngle.val;
-                autoSpotAngle.val = false;
-            }
-            else
-            {
-                throw new ArgumentException($"Invalid type {val}");
-            }
         }
 
         public void SetSliderClickMonitor(PointerStatus pointerStatus)
@@ -190,11 +161,9 @@ namespace Lumination
                 {
                     waiting = false;
                     target = targetCtrl;
-                    targetUid = string.Copy(target.containingAtom.uid);
-                    distanceFromTarget.slider.interactable = true;
-                    UpdateRangeDiff(autoRange.val);
-                    UpdateBaseIntensityFactor(autoIntensity.val);
-                    UpdateSpotBaseWidth(autoSpotAngle.val);
+                    hasTarget = true;
+                    enableLookAt.val = lightType.val == "Spot";
+                    UpdateInteractablesAndStyles(false);
                 })
             );
 
@@ -204,32 +173,6 @@ namespace Lumination
             }
             string newTargetString = GetTargetString();
             callback(newTargetString == currentTargetString ? null : newTargetString);
-        }
-
-        public string GetTargetString()
-        {
-            if(target == null)
-            {
-                return null;
-            }
-
-            return $"\n{target.containingAtom.uid}:{target.name}";
-        }
-
-        public string GetButtonLabelTargetString()
-        {
-            if(target == null)
-            {
-                return null;
-            }
-
-            Atom atom = target.containingAtom;
-            if(target.name == "control")
-            {
-                return UI.Capitalize(atom.uid);
-            }
-
-            return UI.Capitalize(target.name.Replace("Control", ""));
         }
 
         public void SetTransformIconStyle(bool selected = false, bool reset = false)
@@ -244,106 +187,79 @@ namespace Lumination
             control.deselectedMeshScale = reset ? 0.02f : (selected ? 0.03f : 0.02f);
         }
 
-        public void SetInteractableElements()
+        #region Listeners
+
+        public void AddListeners()
         {
-            distanceFromTarget.slider.interactable = target != null;
-            UpdateInteractableByAutoRange(autoRange.val);
-            UpdateInteractableByAutoIntensity(autoIntensity.val);
-            UpdateInteractableByAutoSpotAngle(autoSpotAngle.val);
-            UpdateInteractableByType(lightType.val);
+            enableLookAt.toggle.onValueChanged.AddListener(OnEnableLookAtToggled);
+            autoRange.toggle.onValueChanged.AddListener(OnAutoRangeToggled);
+            autoIntensity.toggle.onValueChanged.AddListener(OnAutoIntensityToggled);
+            autoSpotAngle.toggle.onValueChanged.AddListener(OnAutoSpotAngleToggled);
+            lightType.popup.onValueChangeHandlers += new UIPopup.OnValueChange(OnLightTypeChanged);
         }
 
-        public void AddInteractableListeners()
+        public void UpdateInteractablesAndStyles(bool triggerOnLightTypeChange = true)
         {
-            autoRange.toggle.onValueChanged.AddListener(UpdateInteractableByAutoRange);
-            autoIntensity.toggle.onValueChanged.AddListener(UpdateInteractableByAutoIntensity);
-            autoSpotAngle.toggle.onValueChanged.AddListener(UpdateInteractableByAutoSpotAngle);
-            lightType.popup.onValueChangeHandlers += new UIPopup.OnValueChange(UpdateInteractableByType);
+            OnEnableLookAtToggled(enableLookAt.val);
+            OnAutoRangeToggled(autoRange.val);
+            OnAutoIntensityToggled(autoIntensity.val);
+            OnAutoSpotAngleToggled(autoSpotAngle.val);
+            distanceFromTarget.slider.interactable = hasTarget;
+
+            if(triggerOnLightTypeChange)
+            {
+                OnLightTypeChanged(lightType.val);
+            }
         }
 
-        private void UpdateInteractableByAutoRange(bool val)
+        private void OnEnableLookAtToggled(bool val)
+        {
+            bool isSpot = lightType.val == "Spot";
+            enableLookAt.toggle.interactable = hasTarget && (val || isSpot);
+            gameObject.GetComponent<Lights>().UpdateEnableLookAtUIToggle(hasTarget, isSpot);
+        }
+
+        private void OnAutoRangeToggled(bool val)
         {
             range.slider.interactable = !val;
-            autoIntensity.toggle.interactable = val;
+            intensity.slider.interactable = !val || !autoIntensity.val;
+            autoRange.toggle.interactable = hasTarget;
+            autoIntensity.toggle.interactable = hasTarget && (autoIntensity.val || val);
+            gameObject.GetComponent<Lights>().UpdateAutoRangeUIToggle(hasTarget);
+            gameObject.GetComponent<Lights>().UpdateAutoIntensityUIToggle(hasTarget, val);
 
-            if(val)
-            {
-                //uncheck autoIntensity toggle if autoRange unchecked
-                autoIntensity.val = activeAutoIntensityVal;
-            }
-            else
-            {
-                //restore previously active value if checked
-                activeAutoIntensityVal = autoIntensity.val;
-                autoIntensity.val = false;
-            }
-        }
-
-        private void UpdateInteractableByAutoIntensity(bool val)
-        {
-            intensity.slider.interactable = !val;
-        }
-
-        private void UpdateInteractableByAutoSpotAngle(bool val)
-        {
-            //spotAngle slider is null when autoSpotAngle.val is restored to activeAutoSpotAngleVal
-            //after the light type Point->Spot change, but the slider doesn't exist for Point lights
-            if(lightType.val != "Spot" || spotAngle.slider == null)
-            {
-                return;
-            }
-
-            spotAngle.slider.interactable = !val;
-        }
-
-        private void UpdateInteractableByType(string val)
-        {
-            bool isSpot = val == "Spot";
-            enableLookAt.toggle.interactable = isSpot;
-            autoSpotAngle.toggle.interactable = isSpot;
-        }
-
-        public void AddAutoToggleListeners()
-        {
-            autoRange.toggle.onValueChanged.AddListener(UpdateRangeDiff);
-            autoIntensity.toggle.onValueChanged.AddListener(UpdateBaseIntensityFactor);
-            autoSpotAngle.toggle.onValueChanged.AddListener(UpdateSpotBaseWidth);
-        }
-
-        private void UpdateRangeDiff(bool val)
-        {
-            if(control == null || target == null)
-            {
-                return;
-            }
-
-            if(val)
+            if(control != null && hasTarget && val)
             {
                 rangeDiff = range.val - CalculateDistance();
             }
         }
 
-        private void UpdateBaseIntensityFactor(bool val)
+        private void OnAutoIntensityToggled(bool val)
         {
-            if(control == null || target == null)
-            {
-                return;
-            }
+            intensity.slider.interactable = !val || !autoRange.val;
+            autoIntensity.toggle.interactable = hasTarget && (val || autoRange.val);
+            gameObject.GetComponent<Lights>().UpdateAutoIntensityUIToggle(hasTarget, autoRange.val);
 
-            if(val)
+            if(control != null && hasTarget && val)
             {
                 baseIntensityFactor = intensity.val / range.val;
             }
         }
 
-        private void UpdateSpotBaseWidth(bool val)
+        private void OnAutoSpotAngleToggled(bool val)
         {
-            if(control == null || target == null)
+            bool isSpot = lightType.val == "Spot";
+            autoSpotAngle.toggle.interactable = hasTarget && (val || isSpot);
+            gameObject.GetComponent<Lights>().UpdateAutoSpotAngleUIToggle(hasTarget, isSpot);
+
+            //spotAngle slider is null when autoSpotAngle.val is restored to activeAutoSpotAngleVal
+            //after the light type Point->Spot change, but the slider doesn't exist for Point lights
+            if(isSpot && spotAngle.slider != null)
             {
-                return;
+                spotAngle.slider.interactable = !val;
             }
 
-            if(val)
+            if(control != null && hasTarget && val)
             {
                 //calculate width of the side of an isosceles triangle opposite to the spot angle
                 //assuming spot angle is the vertex angle of the triangle
@@ -352,32 +268,27 @@ namespace Lumination
             }
         }
 
+        private void OnLightTypeChanged(string val)
+        {
+            bool isSpot = val == "Spot";
+            Lights lights = gameObject.GetComponent<Lights>();
+            enableLookAt.toggle.interactable = hasTarget && (enableLookAt.val || isSpot);
+            lights.UpdateEnableLookAtUIToggle(hasTarget, isSpot);
+            lights.UpdateAutoSpotAngleUIToggle(hasTarget, isSpot);
+        }
+
+        #endregion Listeners
+
         private float CalculateDistance()
         {
             return Vector3.Distance(control.followWhenOff.position, target.followWhenOff.position);
-        }
-
-        public void DistanceFromTargetListener(float val)
-        {
-            if(val < 0.2f)
-            {
-                val = 0.2f;
-            }
-            else if(val > 25)
-            {
-                val = 25;
-            }
-
-            Vector3 direction = (target.followWhenOff.position - control.followWhenOff.position).normalized;
-            control.transform.Translate(direction * (prevDistanceFromTargetVal - val), Space.World);
-            prevDistanceFromTargetVal = val;
         }
 
         private void FixedUpdate()
         {
             try
             {
-                if(control == null || target == null)
+                if(control == null || !hasTarget)
                 {
                     return;
                 }
@@ -431,15 +342,62 @@ namespace Lumination
             }
         }
 
+        public void DistanceFromTargetListener(float val)
+        {
+            if(val < 0.2f)
+            {
+                val = 0.2f;
+            }
+            else if(val > 25)
+            {
+                val = 25;
+            }
+
+            Vector3 direction = (target.followWhenOff.position - control.followWhenOff.position).normalized;
+            control.transform.Translate(direction * (prevDistanceFromTargetVal - val), Space.World);
+            prevDistanceFromTargetVal = val;
+        }
+
+        public string GetTargetUID()
+        {
+            return target?.containingAtom.uid;
+        }
+
+        public string GetTargetString()
+        {
+            if(!hasTarget)
+            {
+                return null;
+            }
+
+            return $"\n{target.containingAtom.uid}:{target.name}";
+        }
+
+        public string GetButtonLabelTargetString()
+        {
+            if(!hasTarget)
+            {
+                return null;
+            }
+
+            Atom atom = target.containingAtom;
+            if(target.name == "control")
+            {
+                return UI.Capitalize(atom.uid);
+            }
+
+            return UI.Capitalize(target.name.Replace("Control", ""));
+        }
+
         public JSONClass Serialize()
         {
             JSONClass json = new JSONClass();
             json["atomUid"] = light.containingAtom.uid;
-            json["enableLookAt"].AsBool = activeEnableLookAtVal;
+            json["enableLookAt"].AsBool = enableLookAt.val;
             json["autoRange"].AsBool = autoRange.val;
-            json["autoIntensity"].AsBool = activeAutoIntensityVal;
-            json["autoSpotAngle"].AsBool = activeAutoSpotAngleVal;
-            if(target != null)
+            json["autoIntensity"].AsBool = autoIntensity.val;
+            json["autoSpotAngle"].AsBool = autoSpotAngle.val;
+            if(hasTarget)
             {
                 json["aimingAtAtomUid"] = target.containingAtom.uid;
                 json["aimingAtControl"] = target.name;

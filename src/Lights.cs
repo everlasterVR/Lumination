@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UI;
 
 namespace Lumination
 {
@@ -145,17 +146,24 @@ namespace Lumination
                 .OrderBy(atom => atom.uid).ToList()
                 .ForEach(atom =>
                 {
-                    JSONStorable light = atom.GetStorableByID("Light");
-                    string lightType = light.GetStringChooserParamValue("type");
-                    if(lightType != "Point" && lightType != "Spot")
+                    if(MaxLights())
                     {
-                        return;
+                        log.Error($"Failed to add {atom.uid} to plugin!");
                     }
+                    else
+                    {
+                        JSONStorable light = atom.GetStorableByID("Light");
+                        string lightType = light.GetStringChooserParamValue("type");
+                        if(lightType != "Point" && lightType != "Spot")
+                        {
+                            return;
+                        }
 
-                    LightControl lc = gameObject.AddComponent<LightControl>();
-                    lc.Init(atom.GetStorableByID("Light"), FindControlFromSubScene(atom.uid), lightType);
-                    UpdateAtomUID(lc);
-                    AddLightControlToPlugin(lc, atom.uid);
+                        LightControl lc = gameObject.AddComponent<LightControl>();
+                        lc.Init(atom.GetStorableByID("Light"), FindControlFromSubScene(atom.uid), lightType);
+                        UpdateAtomUID(lc);
+                        AddLightControlToPlugin(lc, atom.uid);
+                    }
                 });
 
             if(restoringFromJson == null)
@@ -166,9 +174,8 @@ namespace Lumination
 
         private void AddNewInvisibleLight(string lightType)
         {
-            if(lightControls.Count >= 6)
+            if(MaxLights())
             {
-                log.Message("You have the maximum number of lights.");
                 return;
             }
 
@@ -195,9 +202,8 @@ namespace Lumination
 
         private void AddInvisibleLightFromScene()
         {
-            if(lightControls.Count >= 6)
+            if(MaxLights())
             {
-                log.Message("You have the maximum number of lights.");
                 return;
             }
 
@@ -254,6 +260,11 @@ namespace Lumination
 
         private void AddCopyOfSelectedLight()
         {
+            if(MaxLights())
+            {
+                return;
+            }
+
             try
             {
                 LightControl sourceLc = lightControls[atomUidToGuid[selectedUid]];
@@ -285,6 +296,17 @@ namespace Lumination
             {
                 log.Error($"{e}");
             }
+        }
+
+        private bool MaxLights()
+        {
+            if(lightControls.Count >= 6)
+            {
+                log.Error("You have the maximum number of lights.");
+                return true;
+            }
+
+            return false;
         }
 
         private string ParseBasename(string uid)
@@ -385,79 +407,42 @@ namespace Lumination
 
         private void DestroyLightControlUI(string uid)
         {
-            try
-            {
-                LightControl lc = lightControls[atomUidToGuid[uid]];
+            LightControl lc = lightControls[atomUidToGuid[uid]];
 
-                lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val);
-                lc.SetTransformIconStyle();
+            lc.uiButton.label = UI.LightButtonLabel(uid, lc.on.val);
+            lc.SetTransformIconStyle();
 
-                if(colorPickerSpacer != null)
-                {
-                    RemoveSpacer(colorPickerSpacer);
-                }
-                if(lightColorPicker != null)
-                {
-                    RemoveColorPicker(lightColorPicker);
-                }
-                if(selectTargetButton != null)
-                {
-                    RemoveButton(selectTargetButton);
-                }
-                if(enableLookAtToggle != null)
-                {
-                    RemoveToggle(enableLookAtToggle);
-                }
-                if(autoRangeToggle != null)
-                {
-                    RemoveToggle(autoRangeToggle);
-                }
-                if(autoIntensityToggle != null)
-                {
-                    RemoveToggle(autoIntensityToggle);
-                }
-                if(autoSpotAngleToggle != null)
-                {
-                    RemoveToggle(autoSpotAngleToggle);
-                }
-                if(distanceFromTargetSlider != null)
-                {
-                    RemoveSlider(distanceFromTargetSlider);
-                }
+            if(colorPickerSpacer != null)
+                RemoveSpacer(colorPickerSpacer);
+            if(lightColorPicker != null)
+                RemoveColorPicker(lightColorPicker);
+            if(selectTargetButton != null)
+                RemoveButton(selectTargetButton);
+            if(enableLookAtToggle != null)
+                RemoveToggle(enableLookAtToggle);
+            if(autoRangeToggle != null)
+                RemoveToggle(autoRangeToggle);
+            if(autoIntensityToggle != null)
+                RemoveToggle(autoIntensityToggle);
+            if(autoSpotAngleToggle != null)
+                RemoveToggle(autoSpotAngleToggle);
+            if(distanceFromTargetSlider != null)
+                RemoveSlider(distanceFromTargetSlider);
 
-                if(lightTypeSpacer != null)
-                {
-                    RemoveSpacer(lightTypeSpacer);
-                }
-                if(lightTypePopup != null)
-                {
-                    RemovePopup(lightTypePopup);
-                }
-                if(rangeSlider != null)
-                {
-                    RemoveSlider(rangeSlider);
-                }
-                if(intensitySlider != null)
-                {
-                    RemoveSlider(intensitySlider);
-                }
-                if(spotAngleSlider != null)
-                {
-                    RemoveSlider(spotAngleSlider);
-                }
-                if(pointBiasSlider != null)
-                {
-                    RemoveSlider(pointBiasSlider);
-                }
-                if(shadowStrengthSlider != null)
-                {
-                    RemoveSlider(shadowStrengthSlider);
-                }
-            }
-            catch(Exception e)
-            {
-                log.Error($"{e}");
-            }
+            if(lightTypeSpacer != null)
+                RemoveSpacer(lightTypeSpacer);
+            if(lightTypePopup != null)
+                RemovePopup(lightTypePopup);
+            if(rangeSlider != null)
+                RemoveSlider(rangeSlider);
+            if(intensitySlider != null)
+                RemoveSlider(intensitySlider);
+            if(spotAngleSlider != null)
+                RemoveSlider(spotAngleSlider);
+            if(pointBiasSlider != null)
+                RemoveSlider(pointBiasSlider);
+            if(shadowStrengthSlider != null)
+                RemoveSlider(shadowStrengthSlider);
         }
 
         private void CreateLightControlUI(LightControl lc)
@@ -520,9 +505,8 @@ namespace Lumination
                 UpdateAtomUID(lc);
             });
 
-            lc.SetInteractableElements();
-            lc.AddInteractableListeners();
-            lc.AddAutoToggleListeners();
+            lc.UpdateInteractablesAndStyles();
+            lc.AddListeners();
         }
 
         private void UpdateAtomUID(LightControl lc)
@@ -579,13 +563,13 @@ namespace Lumination
 
             //atom targeted by a light was removed
             lightControls.Values
-                .Where(lc => lc.targetUid == uid).ToList()
+                .Where(lc => lc.GetTargetUID() == uid).ToList()
                 .ForEach(lc =>
                 {
                     //sets the removed atom's freeController to null, should automatically be removed later on anyway
                     //(just to avoid a coroutine here)
                     lc.target = null;
-                    lc.targetUid = null;
+                    lc.hasTarget = false;
                     UpdateAtomUID(lc);
                     if(lc.light.containingAtom.uid == selectedUid)
                     {
@@ -710,6 +694,33 @@ namespace Lumination
         }
 
         #endregion JSON
+
+        public void UpdateEnableLookAtUIToggle(bool hasTarget, bool isSpot)
+        {
+            ApplyToggleStyle(enableLookAtToggle, hasTarget && isSpot);
+        }
+
+        public void UpdateAutoRangeUIToggle(bool hasTarget)
+        {
+            ApplyToggleStyle(autoRangeToggle, hasTarget);
+        }
+
+        public void UpdateAutoIntensityUIToggle(bool hasTarget, bool autoRangeVal)
+        {
+            ApplyToggleStyle(autoIntensityToggle, hasTarget && autoRangeVal);
+        }
+
+        public void UpdateAutoSpotAngleUIToggle(bool hasTarget, bool isSpot)
+        {
+            ApplyToggleStyle(autoSpotAngleToggle, hasTarget && isSpot);
+        }
+
+        private void ApplyToggleStyle(UIDynamicToggle uiToggle, bool val)
+        {
+            bool on = uiToggle.toggle.isOn;
+            uiToggle.textColor = val ? UI.black : (on ? UI.offGrayRed : UI.gray);
+            uiToggle.backgroundColor = val ? UI.white : (on ? UI.lightPink : UI.white);
+        }
 
         private void Update()
         {

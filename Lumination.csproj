@@ -81,6 +81,7 @@
     <Compile Include="src\Const.cs" />
     <Compile Include="src\Manager.cs" />
     <Compile Include="src\LightControl.cs" />
+    <Compile Include="src\Components\PointerStatus.cs" />
     <Compile Include="src\Utils\UI.cs" />
     <Compile Include="src\Lights.cs" />
     <Compile Include="src\Utils\Tools.cs" />
