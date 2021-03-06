@@ -286,7 +286,9 @@ namespace Lumination
 
         private void UpdateInteractableByAutoSpotAngle(bool val)
         {
-            if(lightType.val != "Spot")
+            //spotAngle slider is null when autoSpotAngle.val is restored to activeAutoSpotAngleVal
+            //after the light type Point->Spot change, but the slider doesn't exist for Point lights
+            if(lightType.val != "Spot" || spotAngle.slider == null)
             {
                 return;
             }
@@ -299,10 +301,6 @@ namespace Lumination
             bool isSpot = val == "Spot";
             enableLookAt.toggle.interactable = isSpot;
             autoSpotAngle.toggle.interactable = isSpot;
-            if(isSpot)
-            {
-                spotAngle.slider.interactable = !autoSpotAngle.val;
-            }
         }
 
         public void AddAutoToggleListeners()
