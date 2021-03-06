@@ -54,6 +54,7 @@ namespace Lumination
 
                 InitUILeft();
                 SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
+                SuperController.singleton.onAtomParentChangedHandlers += new SuperController.OnAtomParentChanged(OnChangeAtomParent);
                 SuperController.singleton.onAtomUIDRenameHandlers += new SuperController.OnAtomUIDRename(OnRenameAtom);
                 IEnumerable<Atom> subSceneAtoms = containingAtom.subSceneComponent.atomsInSubScene;
                 if(!containingAtom.uid.StartsWith(Const.SUBSCENE_UID))
@@ -491,23 +492,7 @@ namespace Lumination
             string uid = atom.uid;
             if(atomUidToGuid.ContainsKey(uid))
             {
-                if(selectedUid == uid)
-                {
-                    DestroyLightControlUI(uid);
-                }
-
-                string guid = atomUidToGuid[uid];
-                LightControl lc = lightControls[guid];
-                lightControls.Remove(guid);
-                atomUidToGuid.Remove(uid);
-                RemoveButton(lc.uiButton);
-                colorPickerSpacer.height = CalculateLeftSpacerHeight();
-                Destroy(lc);
-
-                if(selectedUid == uid)
-                {
-                    RefreshUI(atomUidToGuid?.Keys.FirstOrDefault() ?? "");
-                }
+                RemoveLightControl(uid);
             }
 
             //atom targeted by a light was removed
@@ -525,6 +510,36 @@ namespace Lumination
                         selectTargetButton.label = UI.SelectTargetButtonLabel(lc.GetTargetString());
                     }
                 });
+        }
+
+        private void OnChangeAtomParent(Atom atom, Atom newParent)
+        {
+            //light atom controlled by the plugin was unparented from subscene
+            if(atomUidToGuid.ContainsKey(atom.uid) && (newParent == null || newParent.uid != containingAtom.uid))
+            {
+                RemoveLightControl(atom.uid);
+            }
+        }
+
+        private void RemoveLightControl(string uid)
+        {
+            if(selectedUid == uid)
+            {
+                DestroyLightControlUI(uid);
+            }
+
+            string guid = atomUidToGuid[uid];
+            LightControl lc = lightControls[guid];
+            lightControls.Remove(guid);
+            atomUidToGuid.Remove(uid);
+            RemoveButton(lc.uiButton);
+            colorPickerSpacer.height = CalculateLeftSpacerHeight();
+            Destroy(lc);
+
+            if(selectedUid == uid)
+            {
+                RefreshUI(atomUidToGuid?.Keys.FirstOrDefault() ?? "");
+            }
         }
 
         private void OnRenameAtom(string fromuid, string touid)
@@ -665,6 +680,7 @@ namespace Lumination
             {
                 lightControls?.Values.ToList().ForEach(it => Destroy(it));
                 SuperController.singleton.onAtomRemovedHandlers -= new SuperController.OnAtomRemoved(OnRemoveAtom);
+                SuperController.singleton.onAtomParentChangedHandlers -= new SuperController.OnAtomParentChanged(OnChangeAtomParent);
                 SuperController.singleton.onAtomUIDRenameHandlers -= new SuperController.OnAtomUIDRename(OnRenameAtom);
             }
             catch(Exception e)
