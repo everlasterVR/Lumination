@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace Lumination
 {
+    //mostly deprecated code
     internal class Manager : MVRScript
     {
         private Log log = new Log(nameof(Manager));
