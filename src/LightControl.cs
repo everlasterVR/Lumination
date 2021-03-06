@@ -358,7 +358,9 @@ namespace Lumination
             {
                 val = 25;
             }
-            control.transform.Translate(Vector3.forward * (prevDistanceFromTargetVal - val));
+
+            Vector3 direction = (target.followWhenOff.position - control.followWhenOff.position).normalized;
+            control.transform.Translate(direction * (prevDistanceFromTargetVal - val), Space.World);
             prevDistanceFromTargetVal = val;
         }
 
