@@ -134,7 +134,7 @@ namespace Lumination
                         return;
                     }
 
-                    AddExistingILAtomToPlugin(atom, lightType, true);
+                    AddExistingILAtomToPlugin(atom, lightType, null, true);
                 });
 
             if(restoringFromJson == null)
@@ -155,7 +155,7 @@ namespace Lumination
             {
                 atom.transform.forward = Vector3.down;
                 atom.parentAtom = containingAtom; //add atom to subscene
-                AddExistingILAtomToPlugin(atom, "Spot", false, (lc) =>
+                AddExistingILAtomToPlugin(atom, "Spot", null, false, (lc) =>
                 {
                     lc.intensity.val = 1.2f;
                     lc.range.val = 7;
@@ -175,9 +175,9 @@ namespace Lumination
             try
             {
                 SuperController.singleton.SelectModeControllers(
-                    new SuperController.SelectControllerCallback(targetCtrl =>
+                    new SuperController.SelectControllerCallback(selectedCtrl =>
                     {
-                        Atom atom = targetCtrl.containingAtom;
+                        Atom atom = selectedCtrl.containingAtom;
                         if(atom.type != Const.INVLIGHT)
                         {
                             log.Message($"Selected atom is not an {Const.INVLIGHT} atom!");
@@ -204,8 +204,9 @@ namespace Lumination
                             atom.ToggleOn();
                         }
 
+                        atom.parentAtom = containingAtom; //add atom to subscene
                         light.SetBoolParamValue("on", true);
-                        AddExistingILAtomToPlugin(atom, lightType, true);
+                        AddExistingILAtomToPlugin(atom, lightType, selectedCtrl, true);
                         RefreshUI(atom.uid);
                     })
                 );
@@ -230,13 +231,19 @@ namespace Lumination
             }
         }
 
-        private void AddExistingILAtomToPlugin(Atom atom, string lightType, bool updateUid, Action<LightControl> callback = null)
+        private void AddExistingILAtomToPlugin(
+            Atom atom,
+            string lightType,
+            FreeControllerV3 control,
+            bool updateUid,
+            Action<LightControl> callback = null
+        )
         {
             LightControl lc = gameObject.AddComponent<LightControl>();
-            lc.Init(atom.GetStorableByID("Light"), FindControlFromSubScene(atom.uid), lightType);
+            lc.Init(atom.GetStorableByID("Light"), control ?? FindControlFromSubScene(atom.uid), lightType);
             if(updateUid)
             {
-                UpdateAtomUID(lc); //ensure name is correct when reloading plugin
+                UpdateAtomUID(lc); //ensure name is correct when reloading plugin and when adding from scene
             }
             lc.uiButton = SelectLightButton(atom.uid, lc.on.val);
             string guid = Guid.NewGuid().ToString();
@@ -486,6 +493,8 @@ namespace Lumination
             }
         }
 
+        #region SuperController Listeners
+
         private void OnRemoveAtom(Atom atom)
         {
             //light atom controlled by the plugin was removed
@@ -573,6 +582,10 @@ namespace Lumination
             }
         }
 
+        #endregion SuperController Listeners
+
+        #region JSON
+
         public override JSONClass GetJSON(bool includePhysical = true, bool includeAppearance = true, bool forceStore = false)
         {
             JSONClass json = base.GetJSON(includePhysical, includeAppearance, forceStore);
@@ -627,6 +640,8 @@ namespace Lumination
             atomUidToGuid.Add(atomUid, guid);
             lightControls.Add(guid, lc);
         }
+
+        #endregion JSON
 
         private void Update()
         {
