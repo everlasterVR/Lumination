@@ -18,6 +18,7 @@ namespace Lumination
         private SortedDictionary<string, string> atomUidToGuid = new SortedDictionary<string, string>();
         private string selectedUid = "";
 
+        private UIDynamicButton dupSelectedLightButton;
         private UIDynamicButton removeLightButton;
 
         private UIDynamic colorPickerSpacer;
@@ -76,6 +77,7 @@ namespace Lumination
             AddSpotlightButton();
             AddPointlightButton();
             AddLightFromSceneButton();
+            DupSelectedLightButton();
             RemoveLightButton();
             UISpacer(10);
         }
@@ -98,7 +100,14 @@ namespace Lumination
         {
             UIDynamicButton uiButton = CreateButton("Add light from scene");
             uiButton.buttonColor = UI.lightGreen;
-            uiButton.button.onClick.AddListener(() => AddSelectedInvisibleLight());
+            uiButton.button.onClick.AddListener(() => AddInvisibleLightFromScene());
+        }
+
+        private void DupSelectedLightButton()
+        {
+            dupSelectedLightButton = CreateButton("Add copy of selected light atom");
+            dupSelectedLightButton.buttonColor = UI.lightGreen;
+            dupSelectedLightButton.button.onClick.AddListener(() => AddCopyOfSelectedLight());
         }
 
         private void RemoveLightButton()
@@ -143,7 +152,10 @@ namespace Lumination
                         return;
                     }
 
-                    AddExistingILAtomToPlugin(atom, lightType, null, true);
+                    LightControl lc = gameObject.AddComponent<LightControl>();
+                    lc.Init(atom.GetStorableByID("Light"), FindControlFromSubScene(atom.uid), lightType);
+                    UpdateAtomUID(lc);
+                    AddLightControlToPlugin(lc, atom.uid);
                 });
 
             if(restoringFromJson == null)
@@ -168,19 +180,20 @@ namespace Lumination
                 }
 
                 atom.parentAtom = containingAtom; //add atom to subscene
-                AddExistingILAtomToPlugin(atom, lightType, null, false, (lc) =>
+
+                LightControl lc = gameObject.AddComponent<LightControl>();
+                lc.Init(atom.GetStorableByID("Light"), FindControlFromSubScene(atom.uid), lightType);
+                AddLightControlToPlugin(lc, atom.uid);
+                if(lightType == "Spot")
                 {
-                    if(lightType == "Spot")
-                    {
-                        lc.intensity.val = 1.2f;
-                        lc.range.val = 7;
-                    }
-                });
+                    lc.intensity.val = 1.2f;
+                    lc.range.val = 7;
+                }
                 RefreshUI(atom.uid);
             }));
         }
 
-        private void AddSelectedInvisibleLight()
+        private void AddInvisibleLightFromScene()
         {
             if(lightControls.Count >= 6)
             {
@@ -222,11 +235,51 @@ namespace Lumination
 
                         atom.parentAtom = containingAtom; //add atom to subscene
                         light.SetBoolParamValue("on", true);
-                        AddExistingILAtomToPlugin(atom, lightType, selectedCtrl, true);
+
+                        LightControl lc = gameObject.AddComponent<LightControl>();
+                        lc.Init(atom.GetStorableByID("Light"), selectedCtrl, lightType);
+                        UpdateAtomUID(lc);
+                        AddLightControlToPlugin(lc, atom.uid);
+
                         SuperController.singleton.SelectController(control);
                         RefreshUI(atom.uid);
                     })
                 );
+            }
+            catch(Exception e)
+            {
+                log.Error($"{e}");
+            }
+        }
+
+        private void AddCopyOfSelectedLight()
+        {
+            try
+            {
+                LightControl sourceLc = lightControls[atomUidToGuid[selectedUid]];
+                string lightType = sourceLc.lightType.val;
+                Atom sourceAtom = sourceLc.light.containingAtom;
+
+                JSONClass sceneJSON = SuperController.singleton.GetSaveJSON(sourceAtom, true, true);
+                JSONClass sourceAtomJSON = sceneJSON["atoms"].AsArray[0].AsObject;
+                JSONClass sourceLcJSON = sourceLc.Serialize();
+
+                StartCoroutine(Tools.CreateAtomCo(Const.INVLIGHT, Tools.NewUID(lightType), (atom) =>
+                {
+                    atom.PreRestore();
+                    atom.Restore(sourceAtomJSON, true, true, true);
+                    atom.LateRestore(sourceAtomJSON, true, true, true);
+                    atom.PostRestore();
+                    atom.GetComponentInChildren<Transform>().Translate(0.1f, 0, 0.1f);
+
+                    atom.parentAtom = containingAtom; //add atom to subscene
+
+                    LightControl lc = gameObject.AddComponent<LightControl>();
+                    lc.InitFromJson(atom.GetStorableByID("Light"), FindControlFromSubScene(atom.uid), sourceLcJSON);
+                    UpdateAtomUID(lc);
+                    AddLightControlToPlugin(lc, atom.uid);
+                    RefreshUI(atom.uid);
+                }));
             }
             catch(Exception e)
             {
@@ -248,29 +301,12 @@ namespace Lumination
             }
         }
 
-        private void AddExistingILAtomToPlugin(
-            Atom atom,
-            string lightType,
-            FreeControllerV3 control,
-            bool updateUid,
-            Action<LightControl> callback = null
-        )
+        private void AddLightControlToPlugin(LightControl lc, string uid)
         {
-            LightControl lc = gameObject.AddComponent<LightControl>();
-            lc.Init(atom.GetStorableByID("Light"), control ?? FindControlFromSubScene(atom.uid), lightType);
-            if(updateUid)
-            {
-                UpdateAtomUID(lc); //ensure name is correct when reloading plugin and when adding from scene
-            }
-            lc.uiButton = SelectLightButton(atom.uid, lc.on.val);
+            lc.uiButton = SelectLightButton(uid, lc.on.val);
             string guid = Guid.NewGuid().ToString();
-            atomUidToGuid.Add(atom.uid, guid);
+            atomUidToGuid.Add(uid, guid);
             lightControls.Add(guid, lc);
-
-            if(callback != null)
-            {
-                callback(lc);
-            }
         }
 
         //must get control from subscene's children because the atom parented to subscene doesn't have a child FreeControllerV3
@@ -332,6 +368,7 @@ namespace Lumination
             selectedUid = uid;
             if(!atomUidToGuid.ContainsKey(uid))
             {
+                dupSelectedLightButton.button.interactable = false;
                 removeLightButton.button.interactable = false;
                 return;
             }
@@ -342,6 +379,7 @@ namespace Lumination
 
             CreateLightControlUI(lc);
             PostCreateLightControlUI(lc);
+            dupSelectedLightButton.button.interactable = true;
             removeLightButton.button.interactable = true;
         }
 
@@ -503,7 +541,7 @@ namespace Lumination
         private float CalculateLeftSpacerHeight()
         {
             float btnSpacerHeight = 65;
-            return 682 -(4 * btnSpacerHeight + 10 + (lightControls.Count - 1) * btnSpacerHeight);
+            return 682 - (5 * btnSpacerHeight + 10 + (lightControls.Count - 1) * btnSpacerHeight);
         }
 
         private void ToggleLightOn(string uid)
@@ -667,13 +705,8 @@ namespace Lumination
             }
 
             LightControl lc = gameObject.AddComponent<LightControl>();
-
-            //duplicated from AddExistingILAtomToPlugin
             lc.InitFromJson(atom.GetStorableByID("Light"), FindControlFromSubScene(atomUid), lightJson);
-            lc.uiButton = SelectLightButton(atomUid, lc.on.val);
-            string guid = Guid.NewGuid().ToString();
-            atomUidToGuid.Add(atomUid, guid);
-            lightControls.Add(guid, lc);
+            AddLightControlToPlugin(lc, atom.uid);
         }
 
         #endregion JSON

@@ -63,13 +63,12 @@ namespace Lumination
                 this.light = light;
                 this.control = control;
                 SetTransformIconStyle();
+
                 bool isSpotLight = light.GetStringChooserParamValue("type") == "Spot";
                 activeEnableLookAtVal = isSpotLight && json["enableLookAt"].AsBool;
                 activeAutoIntensityVal = json["autoIntensity"].AsBool;
                 activeAutoSpotAngleVal = isSpotLight && json["autoSpotAngle"].AsBool;
-                InitStorables(
-                    json["autoRange"].AsBool
-                );
+                InitStorables(json["autoRange"].AsBool);
 
                 FreeControllerV3 target = null;
                 if(json["aimingAtAtomUid"] != null && json["aimingAtControl"] != null)
@@ -92,6 +91,9 @@ namespace Lumination
                     {
                         control.physicsEnabled = true;
                         this.target = target;
+                        UpdateRangeDiff(autoRange.val);
+                        UpdateBaseIntensityFactor(autoIntensity.val);
+                        UpdateSpotBaseWidth(autoSpotAngle.val);
                     }
                 }
             }
@@ -200,7 +202,6 @@ namespace Lumination
             {
                 yield return null;
             }
-
             string newTargetString = GetTargetString();
             callback(newTargetString == currentTargetString ? null : newTargetString);
         }
@@ -438,7 +439,7 @@ namespace Lumination
             json["atomUid"] = light.containingAtom.uid;
             json["enableLookAt"].AsBool = activeEnableLookAtVal;
             json["autoRange"].AsBool = autoRange.val;
-            json["autoIntensity"].AsBool = autoIntensity.val;
+            json["autoIntensity"].AsBool = activeAutoIntensityVal;
             json["autoSpotAngle"].AsBool = activeAutoSpotAngleVal;
             if(target != null)
             {
