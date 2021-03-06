@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.UI;
 
 namespace Lumination
 {
@@ -39,7 +38,6 @@ namespace Lumination
         private UIDynamicSlider distanceFromTargetSlider;
 
         private bool? restoringFromJson;
-        private bool? removedFromPluginUI;
         private bool uiOpenPrevFrame = false;
 
         public override void Init()
@@ -345,7 +343,6 @@ namespace Lumination
 
         private void RemoveSelectedInvisibleLight()
         {
-            removedFromPluginUI = true;
             if(atomUidToGuid.ContainsKey(selectedUid))
             {
                 SuperController.singleton.RemoveAtom(lightControls[atomUidToGuid[selectedUid]].light.containingAtom);
