@@ -207,6 +207,7 @@ namespace Lumination
                         atom.parentAtom = containingAtom; //add atom to subscene
                         light.SetBoolParamValue("on", true);
                         AddExistingILAtomToPlugin(atom, lightType, selectedCtrl, true);
+                        SuperController.singleton.SelectController(control);
                         RefreshUI(atom.uid);
                     })
                 );
