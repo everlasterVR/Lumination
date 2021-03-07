@@ -62,7 +62,7 @@ namespace Lumination
                 InitStorables(
                     isSpotLight && json["enableLookAt"].AsBool,
                     json["autoRange"].AsBool,
-                    json["autoIntensity"].AsBool,
+                    json["autoRange"].AsBool && json["autoIntensity"].AsBool,
                     isSpotLight && json["autoSpotAngle"].AsBool
                 );
 
