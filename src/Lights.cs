@@ -51,11 +51,7 @@ namespace Lumination
                 }
 
                 control = containingAtom.freeControllers.First();
-                control.SetBoolParamValue("freezeAtomPhysicsWhenGrabbed", false);
-                control.SetBoolParamValue("xRotationLock", true);
-                control.SetBoolParamValue("zRotationLock", true);
-                control.SetStringChooserParamValue("positionState", "ParentLink");
-                control.SetStringChooserParamValue("rotationState", "ParentLink");
+                SetControlDefaults();
 
                 InitUILeft();
                 SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
@@ -73,6 +69,15 @@ namespace Lumination
             {
                 log.Error($"{e}");
             }
+        }
+
+        private void SetControlDefaults()
+        {
+            control.SetBoolParamValue("freezeAtomPhysicsWhenGrabbed", false);
+            control.SetBoolParamValue("xRotationLock", true);
+            control.SetBoolParamValue("zRotationLock", true);
+            control.onColor = UI.violet;
+            control.highlighted = false; // trigger color change
         }
 
         private void InitUILeft()

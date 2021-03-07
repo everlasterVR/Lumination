@@ -31,7 +31,8 @@ namespace Lumination
 
         public static string LightButtonLabel(string uid, bool on, bool selected = false)
         {
-            string label = $"{(selected ? "■" : "  ")}    {(on ? "ON  " : "OFF")}   {Truncate(uid, 28)}";
+            string onOrOff = on ? $"{Size("  ", 26)}ON" : "OFF";
+            string label = $"  {onOrOff}   {Truncate(uid, 28)}";
             return Bold(Color(label, selected ? violet : offGrayViolet));
         }
 
