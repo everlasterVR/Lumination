@@ -72,14 +72,11 @@ namespace Lumination
                     string aimingAtAtomUid = json["aimingAtAtomUid"].Value;
                     string aimingAtControl = json["aimingAtControl"].Value;
                     Atom aimingAtAtom = SuperController.singleton.GetAtomByUid(aimingAtAtomUid);
-                    target = aimingAtAtom?.gameObject
-                        .GetComponentsInChildren<FreeControllerV3>()
-                        .Where(it => it.name == aimingAtControl)
-                        .FirstOrDefault();
+                    target = aimingAtAtom.freeControllers.Where(it => it.name == aimingAtControl).FirstOrDefault();
 
                     if(target == null)
                     {
-                        log.Message($"Unable to point '{light.containingAtom.uid}' at atom " +
+                        log.Error($"Unable to point '{light.containingAtom.uid}' at atom " +
                             $"'{aimingAtAtomUid}' target control '{aimingAtControl}': " +
                             $"target mentioned in saved JSON but not found in scene.");
                         return;
