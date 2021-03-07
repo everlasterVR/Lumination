@@ -57,6 +57,7 @@ namespace Lumination
         {
             try
             {
+                lights = gameObject.GetComponent<Lights>();
                 this.light = light;
                 this.control = control;
                 SetTransformIconStyle();
