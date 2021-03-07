@@ -104,6 +104,7 @@ namespace Lumination
             UIDynamicButton uiButton = CreateButton("Add light from scene");
             uiButton.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => AddInvisibleLightFromScene());
+            uiButton.button.onClick.AddListener(() => SuperController.singleton.SelectController(control));
         }
 
         private void DupSelectedLightButton()
@@ -493,10 +494,10 @@ namespace Lumination
         {
             selectTargetButton.button.onClick.AddListener(() => StartCoroutine(lc.OnSelectTarget((targetString) =>
             {
-                SuperController.singleton.SelectController(control);
                 UpdateAtomUID(lc);
                 selectTargetButton.label = UI.SelectTargetButtonLabel(targetString);
             })));
+            selectTargetButton.button.onClick.AddListener(() => SuperController.singleton.SelectController(control));
 
             lc.lightType.popup.onValueChangeHandlers += new UIPopup.OnValueChange((value) =>
             {
