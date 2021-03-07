@@ -38,8 +38,12 @@ namespace Lumination
 
         public static string SelectTargetButtonLabel(string targetString)
         {
-            string mainText = string.IsNullOrEmpty(targetString) ? "Select Target" : "Selected Target";
-            return Size(mainText, 32) + Italic(Size(targetString, 28));
+            if(string.IsNullOrEmpty(targetString))
+            {
+                return Size("Select Target", 32);
+            }
+
+            return Size("Selected Target", 32) + Italic(Size("\n" + targetString, 28));
         }
 
         public static string LineBreak()

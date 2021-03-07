@@ -250,13 +250,13 @@ namespace Lumination
                         Atom atom = selectedCtrl.containingAtom;
                         if(atom.type != Const.INVLIGHT)
                         {
-                            log.Message($"Selected atom is not an {Const.INVLIGHT} atom!");
+                            log.Error($"Selected atom is not an {Const.INVLIGHT} atom!");
                             return;
                         }
 
                         if(atomUidToGuid.ContainsKey(atom.uid))
                         {
-                            log.Message($"Selected {Const.INVLIGHT} is already added!");
+                            log.Error($"Selected {Const.INVLIGHT} is already added!");
                             return;
                         }
 
@@ -265,7 +265,7 @@ namespace Lumination
 
                         if(!LightControl.types.Contains(lightType))
                         {
-                            log.Message("Only Spot and Point lights are supported.");
+                            log.Error("Only Spot and Point lights are supported.");
                             return;
                         }
 

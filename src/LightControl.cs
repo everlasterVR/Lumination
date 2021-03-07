@@ -159,6 +159,24 @@ namespace Lumination
             SuperController.singleton.SelectModeControllers(
                 new SuperController.SelectControllerCallback(targetCtrl =>
                 {
+                    if(targetCtrl == target)
+                    {
+                        log.Message($"Already targeting {currentTargetString}.");
+                        return;
+                    }
+
+                    if(targetCtrl.containingAtom == control.containingAtom)
+                    {
+                        log.Message($"Come on, don't point the light at itself. The universe might implode.");
+                        return;
+                    }
+
+                    if(targetCtrl.containingAtom.type == Const.INVLIGHT)
+                    {
+                        log.Error($"Targeting another {Const.INVLIGHT} atom is not supported.");
+                        return;
+                    }
+
                     waiting = false;
                     target = targetCtrl;
                     hasTarget = true;
@@ -281,7 +299,7 @@ namespace Lumination
 
         private float CalculateDistance()
         {
-            return Vector3.Distance(control.followWhenOff.position, target.followWhenOff.position);
+            return Vector3.Distance(control.transform.position, target.transform.position);
         }
 
         private void FixedUpdate()
@@ -295,7 +313,7 @@ namespace Lumination
 
                 if(enableLookAt.val && lightType.val == "Spot")
                 {
-                    control.transform.LookAt(target.followWhenOff.position);
+                    control.transform.LookAt(target.transform.position);
                 }
 
                 float distance = CalculateDistance();
@@ -370,7 +388,7 @@ namespace Lumination
                 return null;
             }
 
-            return $"\n{target.containingAtom.uid}:{target.name}";
+            return $"{target.containingAtom.uid}:{target.name}";
         }
 
         public string GetButtonLabelTargetString()
