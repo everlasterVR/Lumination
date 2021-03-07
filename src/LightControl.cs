@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace Lumination
@@ -12,6 +13,7 @@ namespace Lumination
         public static readonly List<string> types = new List<string> { "Spot", "Point" };
 
         private Log log = new Log(nameof(LightControl));
+        private Lights lights;
         public JSONStorable light;
         public FreeControllerV3 control;
         public FreeControllerV3 target;
@@ -48,6 +50,7 @@ namespace Lumination
             this.control = control;
             SetTransformIconStyle();
             InitStorables(lightTypeVal: lightType);
+            lights = gameObject.GetComponent<Lights>();
         }
 
         public void InitFromJson(JSONStorable light, FreeControllerV3 control, JSONClass json)
@@ -137,9 +140,31 @@ namespace Lumination
                     jc.val = "Point"; //default to Point light
                 }
                 copy.val = jc.val;
+
+                //same as popup change handler in PostCreateLightControlUI
+                if(prevLightType != copy.val && lights.selectedUid == light.containingAtom.uid)
+                {
+                    lights.RefreshUI(light.containingAtom.uid);
+                }
+                prevLightType = copy.val;
+                UpdateLightAtomUID();
             };
 
             return copy;
+        }
+
+        public void UpdateLightAtomUID()
+        {
+            Atom atom = light.containingAtom;
+            string aimAt = GetButtonLabelTargetString();
+            string basename = lightType.val + (string.IsNullOrEmpty(aimAt) ? "" : $"-{aimAt}");
+
+            //prevent rename of atom if only the number sequence differs
+            if(basename == Regex.Split(Tools.WithoutSubScenePath(atom.uid), "#\\d")[0])
+            {
+                return;
+            }
+            atom.SetUID(Tools.NewUID(basename));
         }
 
         public void SetSliderClickMonitor(PointerStatus pointerStatus)
@@ -231,7 +256,7 @@ namespace Lumination
         {
             bool isSpot = lightType.val == "Spot";
             enableLookAt.toggle.interactable = hasTarget && (val || isSpot);
-            gameObject.GetComponent<Lights>().UpdateEnableLookAtUIToggle(hasTarget, isSpot);
+            lights.UpdateEnableLookAtUIToggle(hasTarget, isSpot);
         }
 
         private void OnAutoRangeToggled(bool val)
@@ -240,8 +265,8 @@ namespace Lumination
             intensity.slider.interactable = !val || !autoIntensity.val;
             autoRange.toggle.interactable = hasTarget;
             autoIntensity.toggle.interactable = hasTarget && (autoIntensity.val || val);
-            gameObject.GetComponent<Lights>().UpdateAutoRangeUIToggle(hasTarget);
-            gameObject.GetComponent<Lights>().UpdateAutoIntensityUIToggle(hasTarget, val);
+            lights.UpdateAutoRangeUIToggle(hasTarget);
+            lights.UpdateAutoIntensityUIToggle(hasTarget, val);
 
             if(control != null && hasTarget && val)
             {
@@ -253,7 +278,7 @@ namespace Lumination
         {
             intensity.slider.interactable = !val || !autoRange.val;
             autoIntensity.toggle.interactable = hasTarget && (val || autoRange.val);
-            gameObject.GetComponent<Lights>().UpdateAutoIntensityUIToggle(hasTarget, autoRange.val);
+            lights.UpdateAutoIntensityUIToggle(hasTarget, autoRange.val);
 
             if(control != null && hasTarget && val)
             {
@@ -265,7 +290,7 @@ namespace Lumination
         {
             bool isSpot = lightType.val == "Spot";
             autoSpotAngle.toggle.interactable = hasTarget && (val || isSpot);
-            gameObject.GetComponent<Lights>().UpdateAutoSpotAngleUIToggle(hasTarget, isSpot);
+            lights.UpdateAutoSpotAngleUIToggle(hasTarget, isSpot);
 
             //spotAngle slider is null when autoSpotAngle.val is restored to activeAutoSpotAngleVal
             //after the light type Point->Spot change, but the slider doesn't exist for Point lights
@@ -286,7 +311,6 @@ namespace Lumination
         private void OnLightTypeChanged(string val)
         {
             bool isSpot = val == "Spot";
-            Lights lights = gameObject.GetComponent<Lights>();
             enableLookAt.toggle.interactable = hasTarget && (enableLookAt.val || isSpot);
             lights.UpdateEnableLookAtUIToggle(hasTarget, isSpot);
             lights.UpdateAutoSpotAngleUIToggle(hasTarget, isSpot);

@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace Lumination
@@ -102,6 +103,37 @@ namespace Lumination
             {
                 t.Translate(offsets[new System.Random().Next(offsets.Length)], Space.World);
             }
+        }
+
+        //adapted from Atom.cs
+        public static string WithoutSubScenePath(string uid)
+        {
+            return Regex.Replace(uid, SubscenePath(uid), "");
+        }
+
+        //adapted from Atom.cs
+        private static string SubscenePath(string uid)
+        {
+            if(string.IsNullOrEmpty(uid))
+            {
+                return "";
+            }
+
+            string str = "";
+            Atom atom = SuperController.singleton.GetAtomByUid(uid);
+            if(atom == null)
+            {
+                return str;
+            }
+
+            for(Atom parent = atom.parentAtom; parent != null; parent = parent.parentAtom)
+            {
+                if(parent.isSubSceneType)
+                {
+                    str = parent.uidWithoutSubScenePath + "/" + str;
+                }
+            }
+            return str;
         }
     }
 }

@@ -16,7 +16,7 @@ namespace Lumination
 
         private Dictionary<string, LightControl> lightControls = new Dictionary<string, LightControl>();
         private SortedDictionary<string, string> atomUidToGuid = new SortedDictionary<string, string>();
-        private string selectedUid = "";
+        public string selectedUid = "";
 
         private UIDynamicButton dupSelectedLightButton;
         private UIDynamicButton removeLightButton;
@@ -167,43 +167,12 @@ namespace Lumination
 
                         LightControl lc = gameObject.AddComponent<LightControl>();
                         lc.Init(atom.GetStorableByID("Light"), FindControlFromSubScene(atom.uid), lightType);
-                        UpdateAtomUID(lc);
+                        lc.UpdateLightAtomUID();
                         AddLightControlToPlugin(lc, atom);
                     }
                 });
 
             callback(atomUidToGuid.Keys.FirstOrDefault() ?? "");
-        }
-
-        //adapted from Atom.cs
-        private string WithoutSubScenePath(string uid)
-        {
-            return Regex.Replace(uid, SubscenePath(uid), "");
-        }
-
-        //adapted from Atom.cs
-        private string SubscenePath(string uid)
-        {
-            if(string.IsNullOrEmpty(uid))
-            {
-                return "";
-            }
-
-            string str = "";
-            Atom atom = GetAtomById(uid);
-            if(atom == null)
-            {
-                return str;
-            }
-
-            for(Atom parent = atom.parentAtom; parent != null; parent = parent.parentAtom)
-            {
-                if(parent.isSubSceneType)
-                {
-                    str = parent.uidWithoutSubScenePath + "/" + str;
-                }
-            }
-            return str;
         }
 
         private void AddNewInvisibleLight(string lightType)
@@ -279,7 +248,7 @@ namespace Lumination
 
                         LightControl lc = gameObject.AddComponent<LightControl>();
                         lc.Init(atom.GetStorableByID("Light"), selectedCtrl, lightType);
-                        UpdateAtomUID(lc);
+                        lc.UpdateLightAtomUID();
                         AddLightControlToPlugin(lc, atom);
 
                         SuperController.singleton.SelectController(control);
@@ -324,7 +293,7 @@ namespace Lumination
 
                     LightControl lc = gameObject.AddComponent<LightControl>();
                     lc.InitFromJson(atom.GetStorableByID("Light"), FindControlFromSubScene(atom.uid), sourceLcJSON);
-                    UpdateAtomUID(lc);
+                    lc.UpdateLightAtomUID();
                     AddLightControlToPlugin(lc, atom);
                     RefreshUI(atom.uid);
                 }));
@@ -344,20 +313,6 @@ namespace Lumination
             }
 
             return false;
-        }
-
-        private string ParseBasename(string uid)
-        {
-            try
-            {
-                string excludeNum = Regex.Split(uid, "#\\d")[0];
-                string excludeSubscene = Regex.Split(excludeNum, $"{containingAtom.uid}/")[1];
-                return excludeSubscene;
-            }
-            catch(Exception)
-            {
-                return uid;
-            }
         }
 
         private void AddLightControlToPlugin(LightControl lc, Atom atom)
@@ -416,7 +371,7 @@ namespace Lumination
             };
         }
 
-        private void RefreshUI(string uid)
+        public void RefreshUI(string uid)
         {
             //destroy previous selected UI
             if(atomUidToGuid.ContainsKey(selectedUid))
@@ -434,7 +389,7 @@ namespace Lumination
             }
 
             LightControl lc = lightControls[atomUidToGuid[selectedUid]];
-            lc.uiButton.label = UI.LightButtonLabel(WithoutSubScenePath(selectedUid), lc.on.val, true);
+            lc.uiButton.label = UI.LightButtonLabel(Tools.WithoutSubScenePath(selectedUid), lc.on.val, true);
             lc.SetTransformIconStyle(UITransform.gameObject.activeInHierarchy);
 
             CreateLightControlUI(lc);
@@ -527,36 +482,13 @@ namespace Lumination
         {
             selectTargetButton.button.onClick.AddListener(() => StartCoroutine(lc.OnSelectTarget((targetString) =>
             {
-                UpdateAtomUID(lc);
+                lc.UpdateLightAtomUID();
                 selectTargetButton.label = UI.SelectTargetButtonLabel(targetString);
             })));
             selectTargetButton.button.onClick.AddListener(() => SuperController.singleton.SelectController(control));
 
-            lc.lightType.popup.onValueChangeHandlers += new UIPopup.OnValueChange((value) =>
-            {
-                //refresh UI to swap between spot angle and point bias sliders
-                if(lc.prevLightType != value)
-                {
-                    RefreshUI(lc.light.containingAtom.uid);
-                }
-                lc.prevLightType = value;
-                UpdateAtomUID(lc);
-            });
-
             lc.UpdateInteractablesAndStyles();
             lc.AddListeners();
-        }
-
-        private void UpdateAtomUID(LightControl lc)
-        {
-            Atom atom = lc.light.containingAtom;
-            string aimAt = lc.GetButtonLabelTargetString();
-            string basename = lc.lightType.val + (string.IsNullOrEmpty(aimAt) ? "" : $"-{aimAt}");
-            if(basename == ParseBasename(atom.uid))
-            {
-                return; //prevent rename of atom if only the number sequence differs
-            }
-            atom.SetUID(Tools.NewUID(basename));
         }
 
         //aligns color picker to the plugin UI lower edge based on the number of spotlights
@@ -613,7 +545,7 @@ namespace Lumination
                     lc.autoRange.val = false;
                     lc.autoSpotAngle.val = false;
                     lc.distanceFromTarget.val = 0;
-                    UpdateAtomUID(lc);
+                    lc.UpdateLightAtomUID();
                     if(lc.light.containingAtom.uid == selectedUid)
                     {
                         lc.distanceFromTarget.slider.interactable = false;
