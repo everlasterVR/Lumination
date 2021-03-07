@@ -57,13 +57,7 @@ namespace Lumination
                 SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
                 SuperController.singleton.onAtomParentChangedHandlers += new SuperController.OnAtomParentChanged(OnChangeAtomParent);
                 SuperController.singleton.onAtomUIDRenameHandlers += new SuperController.OnAtomUIDRename(OnRenameAtom);
-                IEnumerable<Atom> subSceneAtoms = containingAtom.subSceneComponent.atomsInSubScene;
-                if(!containingAtom.uid.StartsWith(Const.SUBSCENE_UID))
-                {
-                    RenameSubScene(subSceneAtoms);
-                }
-
-                StartCoroutine(AddILAtomsInSubScene(subSceneAtoms, (uid) => RefreshUI(uid)));
+                StartCoroutine(AddILAtomsInSubScene((uid) => RefreshUI(uid)));
             }
             catch(Exception e)
             {
@@ -133,19 +127,24 @@ namespace Lumination
                 .Count > 0;
             if(containsNonILAtoms)
             {
-                log.Message($"Not renamed - subscene contains atoms that aren't {Const.INVLIGHT}s.");
                 return;
             }
 
             SuperController.singleton.RenameAtom(containingAtom, Tools.NewUID(Const.SUBSCENE_UID));
         }
 
-        private IEnumerator AddILAtomsInSubScene(IEnumerable<Atom> subSceneAtoms, Action<string> callback)
+        private IEnumerator AddILAtomsInSubScene(Action<string> callback)
         {
             yield return new WaitForEndOfFrame();
             if(restoreFromJson)
             {
                 yield break;
+            }
+
+            IEnumerable<Atom> subSceneAtoms = containingAtom.subSceneComponent.atomsInSubScene;
+            if(!containingAtom.uid.StartsWith(Const.SUBSCENE_UID))
+            {
+                RenameSubScene(subSceneAtoms);
             }
 
             subSceneAtoms
