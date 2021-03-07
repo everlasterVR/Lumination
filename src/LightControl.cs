@@ -20,6 +20,7 @@ namespace Lumination
         public FreeControllerV3 target;
         public UIDynamicButton uiButton;
 
+        private float distanceFromTarget;
         private float baseIntensityFactor;
         private float rangeDiff;
         private float spotBaseWidth;
@@ -30,10 +31,8 @@ namespace Lumination
         public JSONStorableBool autoRange;
         public JSONStorableBool autoIntensity;
         public JSONStorableBool autoSpotAngle;
-        public JSONStorableFloat distanceFromTarget;
-        private float prevDistanceFromTargetVal;
-
-        private Dictionary<JSONStorableFloat, PointerStatus> sliderClickMonitors;
+        public JSONStorableFloat distance;
+        private float prevDistanceVal;
 
         public JSONStorableStringChooser lightType;
         public JSONStorableFloat range;
@@ -52,7 +51,6 @@ namespace Lumination
             this.control = control;
             SetTransformIconStyle();
             InitStorables(lightTypeVal: lightType);
-            sliderClickMonitors = new Dictionary<JSONStorableFloat, PointerStatus>();
         }
 
         public void InitFromJson(JSONStorable light, FreeControllerV3 control, JSONClass json)
@@ -112,7 +110,7 @@ namespace Lumination
             autoRange = new JSONStorableBool("Adjust range relative to Target", autoRangeVal);
             autoIntensity = new JSONStorableBool("Adjust intensity relative to Target", autoIntensityVal);
             autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to Target", autoSpotAngleVal);
-            distanceFromTarget = new JSONStorableFloat("Distance from Target", 0f, 0f, 5f, false);
+            distance = new JSONStorableFloat("Distance from Target", 0f, 0f, 5f, false);
             lightType = CreateLightTypeStorable(lightTypeVal);
             range = Tools.CopyFloatStorable(light.GetFloatJSONParam("range"), true);
             intensity = Tools.CopyFloatStorable(light.GetFloatJSONParam("intensity"), true);
@@ -171,12 +169,15 @@ namespace Lumination
 
         public void AddSliderClickMonitors()
         {
-            sliderClickMonitors.Add(distanceFromTarget, distanceFromTarget.slider.gameObject.AddComponent<PointerStatus>());
-        }
+            DistanceSliderClickHandler distanceSCH = distance.slider.gameObject.AddComponent<DistanceSliderClickHandler>();
+            RangeSliderClickHandler rangeSCH = range.slider.gameObject.AddComponent<RangeSliderClickHandler>();
+            IntensitySliderClickHandler intensitySCH = intensity.slider.gameObject.AddComponent<IntensitySliderClickHandler>();
+            SpotAngleSliderClickHandler spotAngleSCH = spotAngle.slider.gameObject.AddComponent<SpotAngleSliderClickHandler>();
 
-        public void UnsetSliderClickMonitors()
-        {
-            sliderClickMonitors = new Dictionary<JSONStorableFloat, PointerStatus>();
+            distanceSCH.Init(this);
+            rangeSCH.Init(this);
+            intensitySCH.Init(this);
+            spotAngleSCH.Init(this);
         }
 
         public IEnumerator OnSelectTarget(Action<string> callback)
@@ -251,7 +252,7 @@ namespace Lumination
             OnAutoRangeToggled(autoRange.val);
             OnAutoIntensityToggled(autoIntensity.val);
             OnAutoSpotAngleToggled(autoSpotAngle.val);
-            distanceFromTarget.slider.interactable = hasTarget;
+            distance.slider.interactable = hasTarget;
 
             if(triggerOnLightTypeChange)
             {
@@ -268,8 +269,6 @@ namespace Lumination
 
         private void OnAutoRangeToggled(bool val)
         {
-            range.slider.interactable = !val;
-            intensity.slider.interactable = !val || !autoIntensity.val;
             autoRange.toggle.interactable = hasTarget;
             autoIntensity.toggle.interactable = hasTarget && (autoIntensity.val || val);
             lights.UpdateAutoRangeUIToggle(hasTarget);
@@ -277,19 +276,18 @@ namespace Lumination
 
             if(control != null && hasTarget && val)
             {
-                rangeDiff = range.val - CalculateDistance();
+                UpdateRangeDiff();
             }
         }
 
         private void OnAutoIntensityToggled(bool val)
         {
-            intensity.slider.interactable = !val || !autoRange.val;
             autoIntensity.toggle.interactable = hasTarget && (val || autoRange.val);
             lights.UpdateAutoIntensityUIToggle(hasTarget, autoRange.val);
 
             if(control != null && hasTarget && val)
             {
-                baseIntensityFactor = intensity.val / range.val;
+                UpdateBaseIntensityFactor();
             }
         }
 
@@ -299,19 +297,9 @@ namespace Lumination
             autoSpotAngle.toggle.interactable = hasTarget && (val || isSpot);
             lights.UpdateAutoSpotAngleUIToggle(hasTarget, isSpot);
 
-            //spotAngle slider is null when autoSpotAngle.val is restored to activeAutoSpotAngleVal
-            //after the light type Point->Spot change, but the slider doesn't exist for Point lights
-            if(isSpot && spotAngle.slider != null)
-            {
-                spotAngle.slider.interactable = !val;
-            }
-
             if(control != null && hasTarget && val)
             {
-                //calculate width of the side of an isosceles triangle opposite to the spot angle
-                //assuming spot angle is the vertex angle of the triangle
-                //and distance from target is the height of the triangle
-                spotBaseWidth = 2 * CalculateDistance() * Mathf.Tan(Mathf.Deg2Rad* spotAngle.val / 2);
+                UpdateSpotBaseWidth();
             }
         }
 
@@ -344,39 +332,7 @@ namespace Lumination
                     control.transform.LookAt(target.transform.position);
                 }
 
-                float distance = CalculateDistance();
-
-                ToggleSliderListener(
-                    distanceFromTarget,
-                    () => distanceFromTarget.slider.onValueChanged.AddListener(DistanceFromTargetListener),
-                    (mouseUp) =>
-                    {
-                        if(mouseUp)
-                        {
-                            distanceFromTarget.slider.onValueChanged.RemoveListener(DistanceFromTargetListener);
-                        }
-                        distanceFromTarget.val = distance;
-                        prevDistanceFromTargetVal = distanceFromTarget.val;
-                    }
-                );
-
-                if(autoRange.val)
-                {
-                    //keep the "backdrop length" (rangeDiff) of the light relative to target constant
-                    range.val = distance + rangeDiff;
-
-                    if(autoIntensity.val)
-                    {
-                        //keep intensity at target more or less constant if auto-adjusting range
-                        intensity.val = range.val * baseIntensityFactor;
-                    }
-                }
-
-                if(autoSpotAngle.val)
-                {
-                    //calculate angle to match the constant spotVertexAngle based on distance (triangle height)
-                    spotAngle.val = 180 - (2 * Mathf.Rad2Deg * Mathf.Atan((2 * distance)/spotBaseWidth));
-                }
+                distanceFromTarget = CalculateDistance();
             }
             catch(Exception e)
             {
@@ -384,26 +340,13 @@ namespace Lumination
             }
         }
 
-        private void ToggleSliderListener(JSONStorableFloat jsf, Action whenDown, Action<bool> whenUp)
+        public void UpdateDistanceVal()
         {
-            if(jsf == null || jsf.slider == null || !sliderClickMonitors.ContainsKey(jsf))
-            {
-                return;
-            }
-
-            PointerStatus status = sliderClickMonitors[jsf];
-            if(status.isDown && status.changed)
-            {
-                whenDown();
-            }
-
-            if(!status.isDown)
-            {
-                whenUp(status.changed);
-            }
+            distance.val = distanceFromTarget;
+            prevDistanceVal = distance.val;
         }
 
-        public void DistanceFromTargetListener(float val)
+        public void DistanceSliderListener(float val)
         {
             if(val < 0.2f)
             {
@@ -415,8 +358,44 @@ namespace Lumination
             }
 
             Vector3 direction = (target.followWhenOff.position - control.followWhenOff.position).normalized;
-            control.transform.Translate(direction * (prevDistanceFromTargetVal - val), Space.World);
-            prevDistanceFromTargetVal = val;
+            control.transform.Translate(direction * (prevDistanceVal - val), Space.World);
+            prevDistanceVal = val;
+        }
+
+        public void UpdateRangeDiff()
+        {
+            rangeDiff = range.val - CalculateDistance();
+        }
+
+        //keep the "backdrop length" (rangeDiff) of the light relative to target constant
+        public void UpdateRangeVal()
+        {
+            range.val = distanceFromTarget + rangeDiff;
+        }
+
+        public void UpdateBaseIntensityFactor()
+        {
+            baseIntensityFactor = intensity.val / range.val;
+        }
+
+        //keep intensity at target more or less constant if auto-adjusting range
+        public void UpdateIntensityVal()
+        {
+            intensity.val = range.val * baseIntensityFactor;
+        }
+
+        //calculate width of the side of an isosceles triangle opposite to the spot angle
+        //assuming spot angle is the vertex angle of the triangle
+        //and distance from target is the height of the triangle
+        public void UpdateSpotBaseWidth()
+        {
+            spotBaseWidth = 2 * CalculateDistance() * Mathf.Tan(Mathf.Deg2Rad * spotAngle.val / 2);
+        }
+
+        //calculate angle to match the constant spotVertexAngle based on distance (triangle height)
+        public void UpdateSpotAngleVal()
+        {
+            spotAngle.val = 180 - (2 * Mathf.Rad2Deg* Mathf.Atan((2 * distanceFromTarget)/spotBaseWidth));
         }
 
         public string GetTargetUID()

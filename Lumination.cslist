@@ -1,4 +1,7 @@
-src\Components\PointerStatus.cs
+src\Components\DistanceSliderClickHandler.cs
+src\Components\IntensitySliderClickHandler.cs
+src\Components\RangeSliderClickHandler.cs
+src\Components\SpotAngleSliderClickHandler.cs
 src\Utils\Log.cs
 src\Utils\Tools.cs
 src\Utils\UI.cs

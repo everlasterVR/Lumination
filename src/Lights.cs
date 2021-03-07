@@ -404,7 +404,6 @@ namespace Lumination
 
             lc.uiButton.label = UI.LightButtonLabel(lc.light.containingAtom.uidWithoutSubScenePath, lc.on.val);
             lc.SetTransformIconStyle();
-            lc.UnsetSliderClickMonitors();
 
             if(colorPickerSpacer != null)
                 RemoveSpacer(colorPickerSpacer);
@@ -451,7 +450,7 @@ namespace Lumination
             autoRangeToggle = CreateToggle(lc.autoRange, true);
             autoIntensityToggle = CreateToggle(lc.autoIntensity, true);
             autoSpotAngleToggle = CreateToggle(lc.autoSpotAngle, true);
-            distanceFromTargetSlider = CreateSlider(lc.distanceFromTarget, true);
+            distanceFromTargetSlider = CreateSlider(lc.distance, true);
             distanceFromTargetSlider.valueFormat = "F3";
             distanceFromTargetSlider.label = "Distance from Target";
 
@@ -546,11 +545,11 @@ namespace Lumination
                     lc.autoIntensity.val = false;
                     lc.autoRange.val = false;
                     lc.autoSpotAngle.val = false;
-                    lc.distanceFromTarget.val = 0;
+                    lc.distance.val = 0;
                     lc.UpdateLightAtomUID();
                     if(lc.light.containingAtom.uid == selectedUid)
                     {
-                        lc.distanceFromTarget.slider.interactable = false;
+                        lc.distance.slider.interactable = false;
                         selectTargetButton.label = UI.SelectTargetButtonLabel(lc.GetTargetString());
                     }
                 });
