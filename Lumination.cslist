@@ -5,6 +5,7 @@ src\Components\SpotAngleSliderClickHandler.cs
 src\Utils\Log.cs
 src\Utils\Tools.cs
 src\Utils\UI.cs
+src\Bindings.cs
 src\Const.cs
 src\LightControl.cs
 src\Lights.cs

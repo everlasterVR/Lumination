@@ -13,6 +13,7 @@ namespace Lumination
     {
         private Log log = new Log(nameof(Lights));
         private FreeControllerV3 control;
+        private Bindings customBindings;
 
         private Dictionary<string, LightControl> lightControls = new Dictionary<string, LightControl>();
         private SortedDictionary<string, string> atomUidToGuid = new SortedDictionary<string, string>();
@@ -57,12 +58,28 @@ namespace Lumination
                 SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
                 SuperController.singleton.onAtomParentChangedHandlers += new SuperController.OnAtomParentChanged(OnChangeAtomParent);
                 SuperController.singleton.onAtomUIDRenameHandlers += new SuperController.OnAtomUIDRename(OnRenameAtom);
+
                 StartCoroutine(AddILAtomsInSubScene((uid) => RefreshUI(uid)));
+                StartCoroutine(SubscribeToKeybindings());
             }
             catch(Exception e)
             {
                 log.Error($"{e}");
             }
+        }
+
+        //https://github.com/vam-community/vam-plugins-interop-specs/blob/main/keybindings.md
+        private IEnumerator SubscribeToKeybindings()
+        {
+            yield return new WaitForEndOfFrame();
+            SuperController.singleton.BroadcastMessage("OnActionsProviderAvailable", this, SendMessageOptions.DontRequireReceiver);
+        }
+
+        public void OnBindingsListRequested(List<object> bindings)
+        {
+            customBindings = new Bindings(this);
+            bindings.Add(customBindings.Settings);
+            bindings.AddRange(customBindings.OnKeyDownActions);
         }
 
         private void SetControlDefaults()
@@ -617,6 +634,12 @@ namespace Lumination
                     selectTargetButton.label = UI.SelectTargetButtonLabel(selectedLc.GetTargetString());
                 }
             }
+
+            //this subscene was renamed
+            if(touid == containingAtom.uid)
+            {
+                customBindings?.UpdateNamespace();
+            }
         }
 
         #endregion SuperController Listeners
@@ -756,6 +779,8 @@ namespace Lumination
                 SuperController.singleton.onAtomRemovedHandlers -= new SuperController.OnAtomRemoved(OnRemoveAtom);
                 SuperController.singleton.onAtomParentChangedHandlers -= new SuperController.OnAtomParentChanged(OnChangeAtomParent);
                 SuperController.singleton.onAtomUIDRenameHandlers -= new SuperController.OnAtomUIDRename(OnRenameAtom);
+
+                SuperController.singleton.BroadcastMessage("OnActionsProviderDestroyed", this, SendMessageOptions.DontRequireReceiver);
             }
             catch(Exception e)
             {
