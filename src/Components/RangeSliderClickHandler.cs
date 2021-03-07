@@ -8,7 +8,7 @@ namespace Lumination
         //private Log log = new Log(nameof(RangeSliderClickHandler));
         private LightControl lc;
 
-        private bool isDown = false;
+        public bool isDown = false;
 
         public void Init(LightControl lc)
         {
@@ -27,14 +27,6 @@ namespace Lumination
             //refresh rangeDiff based on current range when mouse is lifted from slider
             lc.UpdateRangeDiff();
             isDown = false;
-        }
-
-        private void FixedUpdate()
-        {
-            if(lc.autoRange.val && !isDown)
-            {
-                lc.UpdateRangeVal();
-            }
         }
     }
 }

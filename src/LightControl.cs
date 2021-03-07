@@ -41,6 +41,11 @@ namespace Lumination
         public JSONStorableFloat pointBias;
         public JSONStorableFloat shadowStrength;
 
+        private DistanceSliderClickHandler distanceSCH;
+        private RangeSliderClickHandler rangeSCH;
+        private IntensitySliderClickHandler intensitySCH;
+        private SpotAngleSliderClickHandler spotAngleSCH;
+
         public bool hasTarget = false;
         public string prevLightType;
 
@@ -170,10 +175,10 @@ namespace Lumination
 
         public void AddSliderClickMonitors()
         {
-            DistanceSliderClickHandler distanceSCH = distance.slider.gameObject.AddComponent<DistanceSliderClickHandler>();
-            RangeSliderClickHandler rangeSCH = range.slider.gameObject.AddComponent<RangeSliderClickHandler>();
-            IntensitySliderClickHandler intensitySCH = intensity.slider.gameObject.AddComponent<IntensitySliderClickHandler>();
-            SpotAngleSliderClickHandler spotAngleSCH = spotAngle.slider.gameObject.AddComponent<SpotAngleSliderClickHandler>();
+            distanceSCH = distance.slider.gameObject.AddComponent<DistanceSliderClickHandler>();
+            rangeSCH = range.slider.gameObject.AddComponent<RangeSliderClickHandler>();
+            intensitySCH = intensity.slider.gameObject.AddComponent<IntensitySliderClickHandler>();
+            spotAngleSCH = spotAngle.slider.gameObject.AddComponent<SpotAngleSliderClickHandler>();
 
             distanceSCH.Init(this);
             rangeSCH.Init(this);
@@ -334,6 +339,25 @@ namespace Lumination
                 }
 
                 distanceFromTarget = CalculateDistance();
+
+                if(!(distanceSCH?.isDown ?? false))
+                {
+                    UpdateDistanceVal();
+                }
+
+                if(autoRange.val && !(rangeSCH?.isDown ?? false))
+                {
+                    UpdateRangeVal();
+                    if(autoIntensity.val && !(intensitySCH?.isDown ?? false))
+                    {
+                        UpdateIntensityVal();
+                    }
+                }
+
+                if(autoSpotAngle.val && !(spotAngleSCH?.isDown ?? false))
+                {
+                    UpdateSpotAngleVal();
+                }
             }
             catch(Exception e)
             {

@@ -8,7 +8,7 @@ namespace Lumination
         //private Log log = new Log(nameof(RangeSliderClickHandler));
         private LightControl lc;
 
-        private bool isDown = false;
+        public bool isDown = false;
 
         public void Init(LightControl lc)
         {
@@ -25,14 +25,6 @@ namespace Lumination
             //log.Message("OnPointerUp");
             lc.UpdateBaseIntensityFactor();
             isDown = false;
-        }
-
-        private void FixedUpdate()
-        {
-            if(lc.autoRange.val && lc.autoIntensity.val && !isDown)
-            {
-                lc.UpdateIntensityVal();
-            }
         }
     }
 }

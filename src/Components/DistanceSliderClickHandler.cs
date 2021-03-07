@@ -8,7 +8,7 @@ namespace Lumination
         //private Log log = new Log(nameof(DistanceSliderClickHandler));
         private LightControl lc;
 
-        private bool isDown = false;
+        public bool isDown = false;
 
         public void Init(LightControl lc)
         {
@@ -47,14 +47,6 @@ namespace Lumination
                 jsf.slider.onValueChanged.RemoveListener(lc.DistanceSliderListener);
             }
             isDown = false;
-        }
-
-        private void FixedUpdate()
-        {
-            if(!isDown)
-            {
-                lc.UpdateDistanceVal();
-            }
         }
     }
 }
