@@ -52,6 +52,10 @@ namespace Lumination
 
                 control = containingAtom.freeControllers.First();
                 control.SetBoolParamValue("freezeAtomPhysicsWhenGrabbed", false);
+                control.SetBoolParamValue("xRotationLock", true);
+                control.SetBoolParamValue("zRotationLock", true);
+                control.SetStringChooserParamValue("positionState", "ParentLink");
+                control.SetStringChooserParamValue("rotationState", "ParentLink");
 
                 InitUILeft();
                 SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
@@ -123,7 +127,7 @@ namespace Lumination
                 .Count > 0;
             if(containsNonILAtoms)
             {
-                log.Message($"Not renamed.");
+                log.Message($"Not renamed - subscene contains atoms that aren't {Const.INVLIGHT}s.");
                 return;
             }
 

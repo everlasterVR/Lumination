@@ -13,6 +13,8 @@ namespace Lumination
         public static Color lightGreen = new Color(0.75f, 1f, 0.75f);
         public static Color lightPink = new Color(1f, 0.925f, 0.925f);
         public static Color offGrayRed = new Color(0.45f, 0.4f, 0.4f);
+        public static Color violet = new Color(1f, 0.5f, 1f);
+        public static Color offGrayViolet = new Color(0.72f, 0.68f, 0.72f);
         public static Color pink = new Color(1f, 0.75f, 0.75f);
         public static Color turquoise = new Color(0.5f, 1f, 1f);
         public static Color white = UnityEngine.Color.white;
@@ -30,7 +32,7 @@ namespace Lumination
         public static string LightButtonLabel(string uid, bool on, bool selected = false)
         {
             string label = $"{(selected ? "■" : "  ")}    {(on ? "ON  " : "OFF")}   {Truncate(uid, 28)}";
-            return Bold(Color(label, selected ? turquoise : lightGray));
+            return Bold(Color(label, selected ? violet : offGrayViolet));
         }
 
         public static string SelectTargetButtonLabel(string targetString)

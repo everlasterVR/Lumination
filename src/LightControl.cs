@@ -182,7 +182,7 @@ namespace Lumination
                 return;
             }
 
-            control.onColor = reset ? UI.defaultOnColor : (selected ? UI.turquoise : UI.lightGray);
+            control.onColor = reset ? UI.defaultOnColor : (selected ? UI.violet : UI.offGrayViolet);
             control.highlighted = false; // trigger color change
             control.deselectedMeshScale = reset ? 0.02f : (selected ? 0.03f : 0.02f);
         }
