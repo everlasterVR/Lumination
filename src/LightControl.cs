@@ -136,7 +136,7 @@ namespace Lumination
             {
                 if(!types.Contains(jc.val))
                 {
-                    log.Message($"'{jc.val}' type is not supported for lights controlled by this plugin.");
+                    log.Message($"'{jc.val}' type is not supported. Defaulting to 'Point'.");
                     jc.val = "Point"; //default to Point light
                 }
                 copy.val = jc.val;
@@ -392,7 +392,7 @@ namespace Lumination
         public JSONClass Serialize()
         {
             JSONClass json = new JSONClass();
-            json["atomUid"] = light.containingAtom.uid;
+            json["atomUid"] = light.containingAtom.uidWithoutSubScenePath;
             json["enableLookAt"].AsBool = enableLookAt.val;
             json["autoRange"].AsBool = autoRange.val;
             json["autoIntensity"].AsBool = autoIntensity.val;
