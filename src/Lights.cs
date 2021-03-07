@@ -404,6 +404,7 @@ namespace Lumination
 
             lc.uiButton.label = UI.LightButtonLabel(lc.light.containingAtom.uidWithoutSubScenePath, lc.on.val);
             lc.SetTransformIconStyle();
+            lc.UnsetSliderClickMonitors();
 
             if(colorPickerSpacer != null)
                 RemoveSpacer(colorPickerSpacer);
@@ -453,7 +454,6 @@ namespace Lumination
             distanceFromTargetSlider = CreateSlider(lc.distanceFromTarget, true);
             distanceFromTargetSlider.valueFormat = "F3";
             distanceFromTargetSlider.label = "Distance from Target";
-            lc.SetSliderClickMonitor(distanceFromTargetSlider.slider.gameObject.AddComponent<PointerStatus>());
 
             lightTypeSpacer = UISpacer(10, true);
             lightTypePopup = CreatePopup(lc.lightType, true);
@@ -476,6 +476,8 @@ namespace Lumination
             shadowStrengthSlider = CreateSlider(lc.shadowStrength, true);
             shadowStrengthSlider.valueFormat = "F3";
             shadowStrengthSlider.label = "Shadow strength";
+
+            lc.AddSliderClickMonitors();
         }
 
         private void PostCreateLightControlUI(LightControl lc)

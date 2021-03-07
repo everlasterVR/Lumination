@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Lumination
 {
@@ -32,7 +33,7 @@ namespace Lumination
         public JSONStorableFloat distanceFromTarget;
         private float prevDistanceFromTargetVal;
 
-        private PointerStatus pointerStatus;
+        private Dictionary<JSONStorableFloat, PointerStatus> sliderClickMonitors;
 
         public JSONStorableStringChooser lightType;
         public JSONStorableFloat range;
@@ -46,11 +47,12 @@ namespace Lumination
 
         public void Init(JSONStorable light, FreeControllerV3 control, string lightType)
         {
+            lights = gameObject.GetComponent<Lights>();
             this.light = light;
             this.control = control;
             SetTransformIconStyle();
             InitStorables(lightTypeVal: lightType);
-            lights = gameObject.GetComponent<Lights>();
+            sliderClickMonitors = new Dictionary<JSONStorableFloat, PointerStatus>();
         }
 
         public void InitFromJson(JSONStorable light, FreeControllerV3 control, JSONClass json)
@@ -167,9 +169,14 @@ namespace Lumination
             atom.SetUID(Tools.NewUID(basename));
         }
 
-        public void SetSliderClickMonitor(PointerStatus pointerStatus)
+        public void AddSliderClickMonitors()
         {
-            this.pointerStatus = pointerStatus;
+            sliderClickMonitors.Add(distanceFromTarget, distanceFromTarget.slider.gameObject.AddComponent<PointerStatus>());
+        }
+
+        public void UnsetSliderClickMonitors()
+        {
+            sliderClickMonitors = new Dictionary<JSONStorableFloat, PointerStatus>();
         }
 
         public IEnumerator OnSelectTarget(Action<string> callback)
@@ -339,29 +346,19 @@ namespace Lumination
 
                 float distance = CalculateDistance();
 
-                if(autoSpotAngle.val)
-                {
-                    //calculate angle to match the constant spotVertexAngle based on distance (triangle height)
-                    spotAngle.val = 180 - (2 * Mathf.Rad2Deg * Mathf.Atan((2 * distance)/spotBaseWidth));
-                }
-
-                if(pointerStatus != null && distanceFromTarget != null)
-                {
-                    if(pointerStatus.isDown && pointerStatus.changed)
+                ToggleSliderListener(
+                    distanceFromTarget,
+                    () => distanceFromTarget.slider.onValueChanged.AddListener(DistanceFromTargetListener),
+                    (mouseUp) =>
                     {
-                        distanceFromTarget.slider.onValueChanged.AddListener(DistanceFromTargetListener);
-                    }
-
-                    if(!pointerStatus.isDown)
-                    {
-                        if(pointerStatus.changed)
+                        if(mouseUp)
                         {
                             distanceFromTarget.slider.onValueChanged.RemoveListener(DistanceFromTargetListener);
                         }
                         distanceFromTarget.val = distance;
                         prevDistanceFromTargetVal = distanceFromTarget.val;
                     }
-                }
+                );
 
                 if(autoRange.val)
                 {
@@ -374,10 +371,35 @@ namespace Lumination
                         intensity.val = range.val * baseIntensityFactor;
                     }
                 }
+
+                if(autoSpotAngle.val)
+                {
+                    //calculate angle to match the constant spotVertexAngle based on distance (triangle height)
+                    spotAngle.val = 180 - (2 * Mathf.Rad2Deg * Mathf.Atan((2 * distance)/spotBaseWidth));
+                }
             }
             catch(Exception e)
             {
                 log.Error($"{e}");
+            }
+        }
+
+        private void ToggleSliderListener(JSONStorableFloat jsf, Action whenDown, Action<bool> whenUp)
+        {
+            if(jsf == null || jsf.slider == null || !sliderClickMonitors.ContainsKey(jsf))
+            {
+                return;
+            }
+
+            PointerStatus status = sliderClickMonitors[jsf];
+            if(status.isDown && status.changed)
+            {
+                whenDown();
+            }
+
+            if(!status.isDown)
+            {
+                whenUp(status.changed);
             }
         }
 
