@@ -606,13 +606,17 @@ namespace Lumination
                 .Where(lc => lc.GetTargetUID() == atom.uid).ToList()
                 .ForEach(lc =>
                 {
-                    //sets the removed atom's freeController to null, should automatically be removed later on anyway
-                    //(just to avoid a coroutine here)
                     lc.target = null;
                     lc.hasTarget = false;
+                    lc.enableLookAt.val = false;
+                    lc.autoIntensity.val = false;
+                    lc.autoRange.val = false;
+                    lc.autoSpotAngle.val = false;
+                    lc.distanceFromTarget.val = 0;
                     UpdateAtomUID(lc);
                     if(lc.light.containingAtom.uid == selectedUid)
                     {
+                        lc.distanceFromTarget.slider.interactable = false;
                         selectTargetButton.label = UI.SelectTargetButtonLabel(lc.GetTargetString());
                     }
                 });
