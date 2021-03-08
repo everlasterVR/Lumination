@@ -27,7 +27,7 @@ namespace Lumination
             if(!isDown)
             {
                 //log.Message("Added listener");
-                jsf.slider.onValueChanged.AddListener(lc.DistanceSliderListener);
+                jsf.slider.onValueChanged.AddListener(lc.OnDistanceChanged);
             }
             isDown = true;
         }
@@ -44,7 +44,7 @@ namespace Lumination
             if(isDown)
             {
                 //log.Message("Removed listener");
-                jsf.slider.onValueChanged.RemoveListener(lc.DistanceSliderListener);
+                jsf.slider.onValueChanged.RemoveListener(lc.OnDistanceChanged);
             }
             isDown = false;
         }

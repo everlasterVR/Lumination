@@ -26,6 +26,7 @@ namespace Lumination
             //log.Message("OnPointerUp");
             //refresh rangeDiff based on current range when mouse is lifted from slider
             lc.UpdateRangeDiff();
+            lc.UpdateBaseIntensityFactor();
             isDown = false;
         }
     }

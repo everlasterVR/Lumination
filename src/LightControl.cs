@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Lumination
 {
@@ -334,6 +333,22 @@ namespace Lumination
             lights.UpdateAutoSpotAngleUIToggle(hasTarget, isSpot);
         }
 
+        public void OnDistanceChanged(float val)
+        {
+            if(val < 0.2f)
+            {
+                val = 0.2f;
+            }
+            else if(val > 25)
+            {
+                val = 25;
+            }
+
+            Vector3 direction = (target.followWhenOff.position - control.followWhenOff.position).normalized;
+            control.transform.Translate(direction * (prevDistanceVal - val), Space.World);
+            prevDistanceVal = val;
+        }
+
         #endregion Listeners
 
         private float CalculateDistance()
@@ -386,22 +401,6 @@ namespace Lumination
         {
             distance.val = distanceFromTarget;
             prevDistanceVal = distance.val;
-        }
-
-        public void DistanceSliderListener(float val)
-        {
-            if(val < 0.2f)
-            {
-                val = 0.2f;
-            }
-            else if(val > 25)
-            {
-                val = 25;
-            }
-
-            Vector3 direction = (target.followWhenOff.position - control.followWhenOff.position).normalized;
-            control.transform.Translate(direction * (prevDistanceVal - val), Space.World);
-            prevDistanceVal = val;
         }
 
         public void UpdateRangeDiff()
