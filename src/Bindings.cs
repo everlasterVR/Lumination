@@ -20,7 +20,7 @@ namespace Lumination
             this.lights = lights;
             Settings = new Dictionary<string, string>
             {
-                { "Namespace", Namespace() }
+                { "Namespace", nameof(Lumination) }
             };
             OnKeyDownActions = new List<object>()
             {
@@ -28,44 +28,44 @@ namespace Lumination
             };
         }
 
-        public void UpdateNamespace()
-        {
-            Settings["Namespace"] = Namespace();
-            SuperController.singleton.BroadcastMessage("OnActionsProviderAvailable", lights, SendMessageOptions.DontRequireReceiver);
-        }
-
         private object OpenUI()
         {
-            OpenUIAction = new JSONStorableAction(nameof(OpenUI), () => lights.ShowUI(() => SelectPluginUI()));
+            OpenUIAction = new JSONStorableAction(nameof(OpenUI), () => lights.ShowUI(() => StartCoroutine(SelectPluginUICo())));
             return OpenUIAction;
         }
 
-        private void SelectPluginUI()
+        //adapted from Timeline v4.3.1 (c) acidbubbles
+        private IEnumerator SelectPluginUICo()
         {
-            try
+            if(SuperController.singleton.gameMode != SuperController.GameMode.Edit)
             {
-                UITabSelector selector = lights.containingAtom.gameObject.GetComponentInChildren<UITabSelector>();
+                SuperController.singleton.gameMode = SuperController.GameMode.Edit;
+            }
+
+            float time = 0f;
+            while(time < 1f)
+            {
+                time += Time.unscaledDeltaTime;
+                yield return null;
+
+                var selector = lights.containingAtom.gameObject.GetComponentInChildren<UITabSelector>();
+                if(selector == null)
+                {
+                    continue;
+                }
+
                 selector.SetActiveTab("Plugins");
+                if(lights.UITransform == null)
+                {
+                    log.Error($"No UI");
+                }
+
                 if(lights.enabled)
                 {
                     lights.UITransform.gameObject.SetActive(true);
                 }
+                yield break;
             }
-            catch(Exception)
-            {
-                log.Error($"Unable to show plugin UI.");
-            }
-        }
-
-        private string Namespace()
-        {
-            string uid = lights.containingAtom.uid;
-            if(uid == Const.SUBSCENE_UID)
-            {
-                return nameof(Lumination);
-            }
-
-            return $"{nameof(Lumination)}:{uid}";
         }
     }
 }

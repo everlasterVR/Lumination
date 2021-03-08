@@ -390,7 +390,7 @@ namespace Lumination
 
         public void ShowUI(Action callback = null)
         {
-            SuperController.singleton.SelectController(control);
+            SuperController.singleton.SelectController(control, false, false, true);
             SuperController.singleton.ShowMainHUDMonitor();
             if(callback != null)
             {
@@ -647,12 +647,6 @@ namespace Lumination
                 {
                     selectTargetButton.label = UI.SelectTargetButtonLabel(selectedLc.GetTargetString());
                 }
-            }
-
-            //this subscene was renamed
-            if(touid == containingAtom.uid)
-            {
-                customBindings?.UpdateNamespace();
             }
         }
 
