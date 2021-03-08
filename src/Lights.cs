@@ -77,7 +77,8 @@ namespace Lumination
 
         public void OnBindingsListRequested(List<object> bindings)
         {
-            customBindings = new Bindings(this);
+            customBindings = gameObject.AddComponent<Bindings>();
+            customBindings.Init(this);
             bindings.Add(customBindings.Settings);
             bindings.AddRange(customBindings.OnKeyDownActions);
         }
@@ -120,7 +121,7 @@ namespace Lumination
             UIDynamicButton uiButton = CreateButton("Add light from scene");
             uiButton.buttonColor = UI.lightGreen;
             uiButton.button.onClick.AddListener(() => AddInvisibleLightFromScene());
-            uiButton.button.onClick.AddListener(() => SuperController.singleton.SelectController(control));
+            uiButton.button.onClick.AddListener(() => ShowUI());
         }
 
         private void DupSelectedLightButton()
@@ -268,7 +269,7 @@ namespace Lumination
                         lc.UpdateLightAtomUID();
                         AddLightControlToPlugin(lc, atom);
 
-                        SuperController.singleton.SelectController(control);
+                        ShowUI();
                         RefreshUI(atom.uid);
                     })
                 );
@@ -388,6 +389,16 @@ namespace Lumination
             };
         }
 
+        public void ShowUI(Action callback = null)
+        {
+            SuperController.singleton.SelectController(control);
+            SuperController.singleton.ShowMainHUDMonitor();
+            if(callback != null)
+            {
+                callback();
+            }
+        }
+
         public void RefreshUI(string uid)
         {
             //destroy previous selected UI
@@ -503,7 +514,7 @@ namespace Lumination
                 lc.UpdateLightAtomUID();
                 selectTargetButton.label = UI.SelectTargetButtonLabel(targetString);
             })));
-            selectTargetButton.button.onClick.AddListener(() => SuperController.singleton.SelectController(control));
+            selectTargetButton.button.onClick.AddListener(() => ShowUI());
 
             lc.TriggerListeners();
             lc.AddListeners();
@@ -775,6 +786,7 @@ namespace Lumination
         {
             try
             {
+                Destroy(customBindings);
                 lightControls?.Values.ToList().ForEach(it => Destroy(it));
                 SuperController.singleton.onAtomRemovedHandlers -= new SuperController.OnAtomRemoved(OnRemoveAtom);
                 SuperController.singleton.onAtomParentChangedHandlers -= new SuperController.OnAtomParentChanged(OnChangeAtomParent);
