@@ -94,6 +94,20 @@ namespace Lumination
                     control.physicsEnabled = true;
                     this.target = target;
                     hasTarget = true;
+
+                    //setup base values for auto-adjusting to work properly when the light's UI hasn't yet been opened
+                    if(autoRange.val)
+                    {
+                        UpdateRangeDiff();
+                    }
+                    if(autoIntensity.val)
+                    {
+                        UpdateBaseIntensityFactor();
+                    }
+                    if(autoSpotAngle.val)
+                    {
+                        UpdateSpotBaseWidth();
+                    }
                 }
             }
             catch(Exception e)
@@ -217,7 +231,7 @@ namespace Lumination
                     target = targetCtrl;
                     hasTarget = true;
                     enableLookAt.val = lightType.val == "Spot";
-                    UpdateInteractablesAndStyles(false);
+                    TriggerListeners();
                 })
             );
 
@@ -252,7 +266,7 @@ namespace Lumination
             lightType.popup.onValueChangeHandlers += new UIPopup.OnValueChange(OnLightTypeChanged);
         }
 
-        public void UpdateInteractablesAndStyles(bool triggerOnLightTypeChange = true)
+        public void TriggerListeners(bool triggerOnLightTypeChange = true)
         {
             OnEnableLookAtToggled(enableLookAt.val);
             OnAutoRangeToggled(autoRange.val);

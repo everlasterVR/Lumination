@@ -488,7 +488,7 @@ namespace Lumination
             })));
             selectTargetButton.button.onClick.AddListener(() => SuperController.singleton.SelectController(control));
 
-            lc.UpdateInteractablesAndStyles();
+            lc.TriggerListeners();
             lc.AddListeners();
         }
 
