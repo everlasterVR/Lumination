@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -503,14 +502,18 @@ namespace Lumination
             shadowStrengthSlider = CreateSlider(lc.shadowStrength, true);
             shadowStrengthSlider.valueFormat = "F3";
             shadowStrengthSlider.label = "Shadow strength";
-
-            lc.AddSliderClickMonitors();
         }
 
         private void PostCreateLightControlUI(LightControl lc)
         {
+            if(lc.hasTarget)
+            {
+                lc.AddSliderClickMonitors();
+            }
+
             selectTargetButton.button.onClick.AddListener(() => StartCoroutine(lc.OnSelectTarget((targetString) =>
             {
+                lc.AddSliderClickMonitors();
                 lc.UpdateLightAtomUID();
                 selectTargetButton.label = UI.SelectTargetButtonLabel(targetString);
             })));
