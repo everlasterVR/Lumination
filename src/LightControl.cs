@@ -192,12 +192,15 @@ namespace Lumination
             distanceSCH = distance.slider.gameObject.AddComponent<DistanceSliderClickHandler>();
             rangeSCH = range.slider.gameObject.AddComponent<RangeSliderClickHandler>();
             intensitySCH = intensity.slider.gameObject.AddComponent<IntensitySliderClickHandler>();
-            spotAngleSCH = spotAngle.slider.gameObject.AddComponent<SpotAngleSliderClickHandler>();
-
             distanceSCH.Init(this);
             rangeSCH.Init(this);
             intensitySCH.Init(this);
-            spotAngleSCH.Init(this);
+
+            if(lightType.val == "Spot")
+            {
+                spotAngleSCH = spotAngle.slider.gameObject.AddComponent<SpotAngleSliderClickHandler>();
+                spotAngleSCH.Init(this);
+            }
         }
 
         public IEnumerator OnSelectTarget(Action<string> callback)
