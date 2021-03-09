@@ -577,6 +577,7 @@ namespace Lumination
                     lc.autoRange.val = false;
                     lc.autoSpotAngle.val = false;
                     lc.distance.val = 0;
+                    lc.RemoveSliderClickMonitors();
                     lc.UpdateLightAtomUID();
                     if(lc.light.containingAtom.uid == selectedUid)
                     {

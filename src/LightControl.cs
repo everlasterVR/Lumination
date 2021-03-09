@@ -202,6 +202,14 @@ namespace Lumination
             }
         }
 
+        public void RemoveSliderClickMonitors()
+        {
+            Destroy(distanceSCH);
+            Destroy(rangeSCH);
+            Destroy(intensitySCH);
+            Destroy(spotAngleSCH);
+        }
+
         public IEnumerator OnSelectTarget(Action<string> callback)
         {
             control.physicsEnabled = true;
