@@ -48,7 +48,7 @@ namespace Lumination
             return basename + Guid.NewGuid();
         }
 
-        public static JSONStorableColor CopyColorStorable(JSONStorableColor source, bool callback)
+        public static JSONStorableColor CopyColorStorable(JSONStorableColor source, bool addCallbacks)
         {
             JSONStorableColor copy = new JSONStorableColor(
                 source.name,
@@ -56,7 +56,7 @@ namespace Lumination
             );
             copy.val = source.val;
 
-            if(callback)
+            if(addCallbacks)
             {
                 copy.setJSONCallbackFunction = (jc) => source.val = jc.val;
                 source.setJSONCallbackFunction = (jc) => copy.val = jc.val;
@@ -65,7 +65,7 @@ namespace Lumination
             return copy;
         }
 
-        public static JSONStorableFloat CopyFloatStorable(JSONStorableFloat source, bool callback)
+        public static JSONStorableFloat CopyFloatStorable(JSONStorableFloat source, bool addCallbacks)
         {
             JSONStorableFloat copy = new JSONStorableFloat(
                 source.name,
@@ -77,7 +77,7 @@ namespace Lumination
             );
             copy.val = source.val;
 
-            if(callback)
+            if(addCallbacks)
             {
                 copy.setJSONCallbackFunction = (jc) => source.val = jc.val;
                 source.setJSONCallbackFunction = (jc) => copy.val = jc.val;

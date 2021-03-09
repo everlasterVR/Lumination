@@ -137,19 +137,6 @@ namespace Lumination
             removeLightButton.button.onClick.AddListener(() => RemoveSelectedInvisibleLight());
         }
 
-        private void RenameSubScene(IEnumerable<Atom> subSceneAtoms)
-        {
-            bool containsNonILAtoms = subSceneAtoms
-                .Where(atom => atom.type != Const.INVLIGHT).ToList()
-                .Count > 0;
-            if(containsNonILAtoms)
-            {
-                return;
-            }
-
-            SuperController.singleton.RenameAtom(containingAtom, Tools.NewUID(Const.SUBSCENE_UID));
-        }
-
         private IEnumerator AddILAtomsInSubScene(Action<string> callback)
         {
             yield return new WaitForEndOfFrame();
@@ -158,13 +145,7 @@ namespace Lumination
                 yield break;
             }
 
-            IEnumerable<Atom> subSceneAtoms = containingAtom.subSceneComponent.atomsInSubScene;
-            if(!containingAtom.uid.StartsWith(Const.SUBSCENE_UID))
-            {
-                RenameSubScene(subSceneAtoms);
-            }
-
-            subSceneAtoms
+            containingAtom.subSceneComponent.atomsInSubScene
                 .Where(atom => atom.type == Const.INVLIGHT && !atomUidToGuid.ContainsKey(atom.uid))
                 .OrderBy(atom => atom.uidWithoutSubScenePath).ToList()
                 .ForEach(atom =>
@@ -392,10 +373,7 @@ namespace Lumination
         {
             SuperController.singleton.SelectController(control, false, false, true);
             SuperController.singleton.ShowMainHUDMonitor();
-            if(callback != null)
-            {
-                callback();
-            }
+            callback?.Invoke();
         }
 
         public void RefreshUI(string uid)
