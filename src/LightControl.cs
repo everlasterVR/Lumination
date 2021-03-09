@@ -48,7 +48,7 @@ namespace Lumination
         public bool hasTarget = false;
         public string prevLightType;
 
-        public void Init(JSONStorable light, FreeControllerV3 control, string lightType)
+        public void Init(JSONStorable light, FreeControllerV3 control, string lightTypeVal)
         {
             lights = gameObject.GetComponent<Lights>();
             this.light = light;
@@ -57,7 +57,7 @@ namespace Lumination
             this.control.SetBoolParamValue("useGravity", false);
             this.control.SetFloatParamValue("mass", 0.01f);
             SetTransformIconStyle();
-            InitStorables(lightTypeVal: lightType);
+            InitStorables(lightTypeVal);
         }
 
         public void InitFromJson(JSONStorable light, FreeControllerV3 control, JSONClass json)
@@ -71,13 +71,7 @@ namespace Lumination
                 this.control.SetBoolParamValue("useGravity", false);
                 SetTransformIconStyle();
 
-                bool isSpotLight = light.GetStringChooserParamValue("type") == "Spot";
-                InitStorables(
-                    isSpotLight && json["enableLookAt"].AsBool,
-                    json["autoRange"].AsBool,
-                    json["autoRange"].AsBool && json["autoIntensity"].AsBool,
-                    isSpotLight && json["autoSpotAngle"].AsBool
-                );
+                InitStorables();
 
                 FreeControllerV3 target = null;
                 if(json["aimingAtAtomUid"] != null && json["aimingAtControl"] != null)
@@ -87,6 +81,7 @@ namespace Lumination
                     Atom aimingAtAtom = SuperController.singleton.GetAtomByUid(aimingAtAtomUid);
                     target = aimingAtAtom.freeControllers.Where(it => it.name == aimingAtControl).FirstOrDefault();
 
+                    //should not occur unless json modified manually
                     if(target == null)
                     {
                         log.Error($"Unable to point '{light.containingAtom.uid}' at atom " +
@@ -97,6 +92,12 @@ namespace Lumination
 
                     this.target = target;
                     hasTarget = true;
+
+                    bool isSpotLight = light.GetStringChooserParamValue("type") == "Spot";
+                    enableLookAt.val = isSpotLight && json["enableLookAt"].AsBool;
+                    autoRange.val = json["autoRange"].AsBool;
+                    autoIntensity.val = json["autoRange"].AsBool && json["autoIntensity"].AsBool;
+                    autoSpotAngle.val = isSpotLight && json["autoSpotAngle"].AsBool;
 
                     //setup base values for auto-adjusting to work properly when the light's UI hasn't yet been opened
                     if(autoRange.val)
@@ -119,20 +120,14 @@ namespace Lumination
             }
         }
 
-        private void InitStorables(
-            bool enableLookAtVal = false,
-            bool autoRangeVal = false,
-            bool autoIntensityVal = false,
-            bool autoSpotAngleVal = false,
-            string lightTypeVal = null
-        )
+        private void InitStorables(string lightTypeVal = null)
         {
             on = light.GetBoolJSONParam("on");
             lightColor = Tools.CopyColorStorable(light.GetColorJSONParam("color"), true);
-            enableLookAt = new JSONStorableBool("Enable aiming at Target", enableLookAtVal);
-            autoRange = new JSONStorableBool("Adjust range relative to Target", autoRangeVal);
-            autoIntensity = new JSONStorableBool("Adjust intensity relative to Target", autoIntensityVal);
-            autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to Target", autoSpotAngleVal);
+            enableLookAt = new JSONStorableBool("Enable aiming at Target", false);
+            autoRange = new JSONStorableBool("Adjust range relative to Target", false);
+            autoIntensity = new JSONStorableBool("Adjust intensity relative to Target", false);
+            autoSpotAngle = new JSONStorableBool("Adjust spot angle relative to Target", false);
             distance = new JSONStorableFloat("Distance from Target", 0f, 0f, 5f, false);
             lightType = CreateLightTypeStorable(lightTypeVal);
             range = Tools.CopyFloatStorable(light.GetFloatJSONParam("range"), true);
@@ -482,19 +477,38 @@ namespace Lumination
             return UI.Capitalize(target.name.Replace("Control", ""));
         }
 
-        public JSONClass Serialize()
+        public JSONClass Serialize(bool forceSaveTarget)
         {
             JSONClass json = new JSONClass();
             json["atomUid"] = light.containingAtom.uidWithoutSubScenePath;
-            json["enableLookAt"].AsBool = enableLookAt.val;
-            json["autoRange"].AsBool = autoRange.val;
-            json["autoIntensity"].AsBool = autoIntensity.val;
-            json["autoSpotAngle"].AsBool = autoSpotAngle.val;
-            if(hasTarget)
+            if(!hasTarget)
+            {
+                return json;
+            }
+
+            Func<bool> TargetInSubScene = () => lights.containingAtom.subSceneComponent.atomsInSubScene.Contains(target.containingAtom);
+            if(forceSaveTarget || TargetInSubScene())
             {
                 json["aimingAtAtomUid"] = target.containingAtom.uid;
                 json["aimingAtControl"] = target.name;
+                if(enableLookAt.val)
+                {
+                    json["enableLookAt"].AsBool = enableLookAt.val;
+                }
+                if(autoRange.val)
+                {
+                    json["autoRange"].AsBool = autoRange.val;
+                }
+                if(autoIntensity.val)
+                {
+                    json["autoIntensity"].AsBool = autoIntensity.val;
+                }
+                if(autoSpotAngle.val)
+                {
+                    json["autoSpotAngle"].AsBool = autoSpotAngle.val;
+                }
             }
+
             return json;
         }
 

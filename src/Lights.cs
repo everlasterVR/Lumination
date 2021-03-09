@@ -37,7 +37,8 @@ namespace Lumination
         private UIDynamicSlider shadowStrengthSlider;
         private UIDynamicSlider distanceFromTargetSlider;
 
-        private bool restoreFromJson = false;
+        private bool savingFullScene = false;
+        private bool restoringFromJson = false;
         private bool uiOpenPrevFrame = false;
 
         public override void Init()
@@ -54,11 +55,14 @@ namespace Lumination
                 SetControlDefaults();
 
                 InitUILeft();
-                SuperController.singleton.onAtomRemovedHandlers += new SuperController.OnAtomRemoved(OnRemoveAtom);
-                SuperController.singleton.onAtomParentChangedHandlers += new SuperController.OnAtomParentChanged(OnChangeAtomParent);
-                SuperController.singleton.onAtomUIDRenameHandlers += new SuperController.OnAtomUIDRename(OnRenameAtom);
+                SuperController.singleton.onAtomRemovedHandlers += OnRemoveAtom;
+                SuperController.singleton.onAtomParentChangedHandlers += OnChangeAtomParent;
+                SuperController.singleton.onAtomUIDRenameHandlers += OnRenameAtom;
+                //should use delegate new SuperController.OnBeforeSceneSave but
+                //onBeforeSceneSaveHandlers accepts only methods of type OnSceneLoaded; they are identical
+                SuperController.singleton.onBeforeSceneSaveHandlers += OnBeforeSaveScene;
 
-                StartCoroutine(AddILAtomsInSubScene((uid) => RefreshUI(uid)));
+                StartCoroutine(AddILAtomsInSubScene(() => RefreshUI()));
                 StartCoroutine(SubscribeToKeybindings());
             }
             catch(Exception e)
@@ -137,10 +141,10 @@ namespace Lumination
             removeLightButton.button.onClick.AddListener(() => RemoveSelectedInvisibleLight());
         }
 
-        private IEnumerator AddILAtomsInSubScene(Action<string> callback)
+        private IEnumerator AddILAtomsInSubScene(Action callback)
         {
             yield return new WaitForEndOfFrame();
-            if(restoreFromJson)
+            if(restoringFromJson)
             {
                 yield break;
             }
@@ -170,7 +174,7 @@ namespace Lumination
                     }
                 });
 
-            callback(atomUidToGuid.Keys.FirstOrDefault() ?? "");
+            callback();
         }
 
         private void AddNewInvisibleLight(string lightType)
@@ -275,7 +279,7 @@ namespace Lumination
 
                 JSONClass sceneJSON = SuperController.singleton.GetSaveJSON(sourceAtom, true, true);
                 JSONClass sourceAtomJSON = sceneJSON["atoms"].AsArray[0].AsObject;
-                JSONClass sourceLcJSON = sourceLc.Serialize();
+                JSONClass sourceLcJSON = sourceLc.Serialize(forceSaveTarget: true);
 
                 StartCoroutine(Tools.CreateAtomCo(Const.INVLIGHT, Tools.NewUID(lightType), (atom) =>
                 {
@@ -376,8 +380,10 @@ namespace Lumination
             callback?.Invoke();
         }
 
-        public void RefreshUI(string uid)
+        public void RefreshUI(string uid = null)
         {
+            uid = uid ?? atomUidToGuid.Keys.FirstOrDefault() ?? "";
+
             //destroy previous selected UI
             if(atomUidToGuid.ContainsKey(selectedUid))
             {
@@ -591,7 +597,7 @@ namespace Lumination
 
             if(selectedUid == uid)
             {
-                RefreshUI(atomUidToGuid?.Keys.FirstOrDefault() ?? "");
+                RefreshUI();
             }
         }
 
@@ -608,10 +614,10 @@ namespace Lumination
                 bool selected = selectedUid == fromuid;
 
                 Atom atom = GetAtomById(touid);
-                string toUidWithoutSubscenePath = atom.uidWithoutSubScenePath;
-                lc.uiButton.label = UI.LightButtonLabel(toUidWithoutSubscenePath, lc.on.val, selected);
+                string toUidWithoutSubScenePath = atom.uidWithoutSubScenePath;
+                lc.uiButton.label = UI.LightButtonLabel(toUidWithoutSubScenePath, lc.on.val, selected);
                 lc.uiButton.button.onClick.RemoveAllListeners();
-                lc.uiButton.button.onClick.AddListener(OnSelectLight(toUidWithoutSubscenePath));
+                lc.uiButton.button.onClick.AddListener(OnSelectLight(toUidWithoutSubScenePath));
                 if(selected)
                 {
                     selectedUid = touid;
@@ -629,6 +635,11 @@ namespace Lumination
             }
         }
 
+        public void OnBeforeSaveScene()
+        {
+            savingFullScene = true;
+        }
+
         #endregion SuperController Listeners
 
         #region JSON
@@ -637,23 +648,23 @@ namespace Lumination
         {
             JSONClass json = base.GetJSON(includePhysical, includeAppearance, forceStore);
             json["lightControls"] = new JSONArray();
-            lightControls.Values.ToList().ForEach(lc => json["lightControls"].Add(lc.Serialize()));
-            if(selectedUid != "")
+            lightControls.Values.ToList().ForEach(lc =>
             {
-                json["selected"] = selectedUid;
-            }
+                json["lightControls"].Add(lc.Serialize(forceSaveTarget: savingFullScene));
+            });
             needsStore = true;
+            savingFullScene = false;
             return json;
         }
 
         public override void RestoreFromJSON(JSONClass json, bool restorePhysical = true, bool restoreAppearance = true, JSONArray presetAtoms = null, bool setMissingToDefault = true)
         {
-            restoreFromJson = true;
+            restoringFromJson = true;
             base.RestoreFromJSON(json, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
-            StartCoroutine(RestoreFromJSONInternal(json, (uid) => RefreshUI(uid)));
+            StartCoroutine(RestoreFromJSONInternal(json, () => RefreshUI()));
         }
 
-        private IEnumerator RestoreFromJSONInternal(JSONClass json, Action<string> callback)
+        private IEnumerator RestoreFromJSONInternal(JSONClass json, Action callback)
         {
             yield return new WaitForEndOfFrame();
 
@@ -673,12 +684,7 @@ namespace Lumination
                 AddLightControlToPlugin(lc, atom);
             }
 
-            string selected = json["selected"]?.Value ?? "";
-            if(!atomUidToGuid.ContainsKey(selected))
-            {
-                selected = atomUidToGuid.Keys.FirstOrDefault() ?? "";
-            }
-            callback(selected);
+            callback();
         }
 
         #endregion JSON
@@ -768,9 +774,10 @@ namespace Lumination
             {
                 Destroy(customBindings);
                 lightControls?.Values.ToList().ForEach(it => Destroy(it));
-                SuperController.singleton.onAtomRemovedHandlers -= new SuperController.OnAtomRemoved(OnRemoveAtom);
-                SuperController.singleton.onAtomParentChangedHandlers -= new SuperController.OnAtomParentChanged(OnChangeAtomParent);
-                SuperController.singleton.onAtomUIDRenameHandlers -= new SuperController.OnAtomUIDRename(OnRenameAtom);
+                SuperController.singleton.onAtomRemovedHandlers -= OnRemoveAtom;
+                SuperController.singleton.onAtomParentChangedHandlers -= OnChangeAtomParent;
+                SuperController.singleton.onAtomUIDRenameHandlers -= OnRenameAtom;
+                SuperController.singleton.onBeforeSceneSaveHandlers -= OnBeforeSaveScene;
 
                 SuperController.singleton.BroadcastMessage("OnActionsProviderDestroyed", this, SendMessageOptions.DontRequireReceiver);
             }
