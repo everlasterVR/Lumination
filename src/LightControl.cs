@@ -53,6 +53,9 @@ namespace Lumination
             lights = gameObject.GetComponent<Lights>();
             this.light = light;
             this.control = control;
+            this.control.SetBoolParamValue("physicsEnabled", true);
+            this.control.SetBoolParamValue("useGravity", false);
+            this.control.SetFloatParamValue("mass", 0.01f);
             SetTransformIconStyle();
             InitStorables(lightTypeVal: lightType);
         }
@@ -64,6 +67,8 @@ namespace Lumination
                 lights = gameObject.GetComponent<Lights>();
                 this.light = light;
                 this.control = control;
+                this.control.SetBoolParamValue("physicsEnabled", true);
+                this.control.SetBoolParamValue("useGravity", false);
                 SetTransformIconStyle();
 
                 bool isSpotLight = light.GetStringChooserParamValue("type") == "Spot";
@@ -90,7 +95,6 @@ namespace Lumination
                         return;
                     }
 
-                    control.physicsEnabled = true;
                     this.target = target;
                     hasTarget = true;
 
