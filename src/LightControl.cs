@@ -220,7 +220,6 @@ namespace Lumination
                 {
                     if(targetCtrl == target)
                     {
-                        log.Message($"Already targeting {currentTargetString}.");
                         return;
                     }
 
@@ -238,8 +237,11 @@ namespace Lumination
 
                     waiting = false;
                     target = targetCtrl;
+                    if(!hasTarget)
+                    {
+                        enableLookAt.val = lightType.val == "Spot";
+                    }
                     hasTarget = true;
-                    enableLookAt.val = lightType.val == "Spot";
                     TriggerListeners();
                 })
             );
