@@ -102,7 +102,7 @@ namespace Lumination
             AddLightFromSceneButton();
             DupSelectedLightButton();
             RemoveLightButton();
-            UISpacer(10);
+            UISpacer(15);
         }
 
         private void AddSpotlightButton()
@@ -453,7 +453,7 @@ namespace Lumination
         {
             colorPickerSpacer = UISpacer(CalculateLeftSpacerHeight());
             lightColorPicker = CreateColorPicker(lc.lightColor);
-            lightColorPicker.label = "Light color";
+            lightColorPicker.showLabel = false;
 
             selectTargetButton = CreateButton(UI.SelectTargetButtonLabel(lc.GetTargetString()), true);
             selectTargetButton.height = 115;
@@ -511,7 +511,7 @@ namespace Lumination
         private float CalculateLeftSpacerHeight()
         {
             float btnSpacerHeight = 65;
-            return 682 - (5 * btnSpacerHeight + 10 + (lightControls.Count - 1) * btnSpacerHeight);
+            return 682 - (5 * btnSpacerHeight + 15 + (lightControls.Count - 1) * btnSpacerHeight);
         }
 
         private void ToggleLightOn(string uid, string uidWithoutSubscenePath)
@@ -726,6 +726,12 @@ namespace Lumination
                     return;
                 }
 
+                LightControl selectedLc = null;
+                if(atomUidToGuid?.ContainsKey(selectedUid) ?? false)
+                {
+                    selectedLc = lightControls[atomUidToGuid[selectedUid]];
+                }
+
                 if(uiOpen)
                 {
                     atomUidToGuid?.Where(kvp => kvp.Key != selectedUid).ToList().ForEach(kvp =>
@@ -733,21 +739,36 @@ namespace Lumination
                         LightControl lc = lightControls[kvp.Value];
                         lc.uiButton.label = UI.LightButtonLabel(lc.light.containingAtom.uidWithoutSubScenePath, lc.on.val);
                     });
+
+                    if(selectedLc != null)
+                    {
+                        selectedLc.uiButton.label = UI.LightButtonLabel(selectedLc.light.containingAtom.uidWithoutSubScenePath, selectedLc.on.val, true);
+                        StartCoroutine(RecreateColorPicker(selectedLc.lightColor));
+                    }
                 }
 
-                if(atomUidToGuid != null && atomUidToGuid.ContainsKey(selectedUid))
-                {
-                    LightControl selectedLc = lightControls[atomUidToGuid[selectedUid]];
-                    selectedLc.SetTransformIconStyle(uiOpen);
-                    selectedLc.uiButton.label = UI.LightButtonLabel(selectedLc.light.containingAtom.uidWithoutSubScenePath, selectedLc.on.val, true);
-                }
-
+                selectedLc?.SetTransformIconStyle(uiOpen);
                 uiOpenPrevFrame = uiOpen;
             }
             catch(Exception e)
             {
                 log.Error($"{e}");
             }
+        }
+
+        //Hacky workaround. For some reason the current color indicator rectangle is missing when the plugin UI is opened.
+        private IEnumerator RecreateColorPicker(JSONStorableColor jsc)
+        {
+            yield return new WaitForSeconds(0.1f);
+
+            if(colorPickerSpacer != null)
+                RemoveSpacer(colorPickerSpacer);
+            if(lightColorPicker != null)
+                RemoveColorPicker(lightColorPicker);
+
+            colorPickerSpacer = UISpacer(CalculateLeftSpacerHeight());
+            lightColorPicker = CreateColorPicker(jsc);
+            lightColorPicker.showLabel = false;
         }
 
         private void OnDisable()
