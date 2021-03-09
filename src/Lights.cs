@@ -46,7 +46,7 @@ namespace Lumination
             {
                 if(containingAtom.type != "SubScene")
                 {
-                    log.Error($"Add to a SubsScene atom, not {containingAtom.type}.");
+                    log.Error($"Add to a SubScene atom, not {containingAtom.type}.");
                     return;
                 }
 
@@ -776,6 +776,10 @@ namespace Lumination
             }
             catch(Exception e)
             {
+                if(containingAtom.type != "SubScene")
+                {
+                    return;
+                }
                 log.Error($"{e}");
             }
         }
@@ -794,6 +798,10 @@ namespace Lumination
             }
             catch(Exception e)
             {
+                if(containingAtom.type != "SubScene")
+                {
+                    return;
+                }
                 log.Error($"{e}");
             }
         }
