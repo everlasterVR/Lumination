@@ -523,5 +523,16 @@ namespace Lumination
         {
             SetTransformIconStyle(reset: true);
         }
+
+        private void OnDestroy()
+        {
+            light.GetColorJSONParam("color").setJSONCallbackFunction = null;
+            light.GetStringChooserJSONParam("type").setJSONCallbackFunction = null;
+            light.GetFloatJSONParam("range").setJSONCallbackFunction = null;
+            light.GetFloatJSONParam("intensity").setJSONCallbackFunction = null;
+            light.GetFloatJSONParam("spotAngle").setJSONCallbackFunction = null;
+            light.GetFloatJSONParam("pointBias").setJSONCallbackFunction = null;
+            light.GetFloatJSONParam("shadowStrength").setJSONCallbackFunction = null;
+        }
     }
 }
