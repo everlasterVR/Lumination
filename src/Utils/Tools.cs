@@ -9,8 +9,6 @@ namespace Lumination
 {
     public static class Tools
     {
-        public static Log log = new Log(nameof(Tools));
-
         //from Acidbubbles on Discord 27/02/2021
         public static IEnumerator CreateAtomCo(string type, string uid, Action<Atom> callback)
         {

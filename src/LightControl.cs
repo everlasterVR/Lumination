@@ -12,7 +12,6 @@ namespace Lumination
     {
         public static readonly List<string> types = new List<string> { "Spot", "Point" };
 
-        private Log log = new Log(nameof(LightControl));
         private Lights lights;
         public JSONStorable light;
         public FreeControllerV3 control;
@@ -84,9 +83,9 @@ namespace Lumination
                     //should not occur unless json modified manually
                     if(target == null)
                     {
-                        log.Error($"Unable to point '{light.containingAtom.uid}' at atom " +
+                        Log.Error($"Unable to point '{light.containingAtom.uid}' at atom " +
                             $"'{aimingAtAtomUid}' target control '{aimingAtControl}': " +
-                            $"target mentioned in saved JSON but not found in scene.");
+                            $"target mentioned in saved JSON but not found in scene.", nameof(LightControl));
                         return;
                     }
 
@@ -116,7 +115,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"Error initalizing from JSON for atom '{light?.containingAtom?.uid}': {e}");
+                Log.Error($"Error initalizing from JSON for atom '{light?.containingAtom?.uid}': {e}", nameof(LightControl));
             }
         }
 
@@ -154,7 +153,7 @@ namespace Lumination
             {
                 if(!types.Contains(jc.val))
                 {
-                    log.Message($"'{jc.val}' type is not supported. Defaulting to 'Point'.");
+                    Log.Message($"'{jc.val}' type is not supported. Defaulting to 'Point'.", nameof(LightControl));
                     jc.val = "Point"; //default to Point light
                 }
                 copy.val = jc.val;
@@ -225,13 +224,13 @@ namespace Lumination
 
                     if(targetCtrl.containingAtom == control.containingAtom)
                     {
-                        log.Message($"Come on, don't point the light at itself. The universe might implode.");
+                        Log.Message($"Come on, don't point the light at itself. The universe might implode.", nameof(LightControl));
                         return;
                     }
 
                     if(targetCtrl.containingAtom.type == Const.INVLIGHT)
                     {
-                        log.Error($"Targeting another {Const.INVLIGHT} atom is not supported.");
+                        Log.Error($"Targeting another {Const.INVLIGHT} atom is not supported.", nameof(LightControl));
                         return;
                     }
 
@@ -402,7 +401,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(LightControl));
             }
         }
 

@@ -10,7 +10,6 @@ namespace Lumination
 {
     internal class Lights : MVRScript
     {
-        private Log log = new Log(nameof(Lights));
         private FreeControllerV3 control;
         private Bindings customBindings;
 
@@ -47,7 +46,7 @@ namespace Lumination
             {
                 if(containingAtom.type != "SubScene")
                 {
-                    log.Error($"Add to a SubScene atom, not {containingAtom.type}.");
+                    Log.Error($"Add to a SubScene atom, not {containingAtom.type}.", nameof(Lights));
                     return;
                 }
 
@@ -67,7 +66,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(Lights));
             }
         }
 
@@ -156,7 +155,7 @@ namespace Lumination
                 {
                     if(MaxLights())
                     {
-                        log.Error($"Failed to add {atom.uid} to plugin!");
+                        Log.Error($"Failed to add {atom.uid} to plugin!", nameof(Lights));
                     }
                     else
                     {
@@ -221,13 +220,13 @@ namespace Lumination
                         Atom atom = selectedCtrl.containingAtom;
                         if(atom.type != Const.INVLIGHT)
                         {
-                            log.Error($"Selected atom is not an {Const.INVLIGHT} atom!");
+                            Log.Error($"Selected atom is not an {Const.INVLIGHT} atom!", nameof(Lights));
                             return;
                         }
 
                         if(atomUidToGuid.ContainsKey(atom.uid))
                         {
-                            log.Error($"Selected {Const.INVLIGHT} is already added!");
+                            Log.Error($"Selected {Const.INVLIGHT} is already added!", nameof(Lights));
                             return;
                         }
 
@@ -236,7 +235,7 @@ namespace Lumination
 
                         if(!LightControl.types.Contains(lightType))
                         {
-                            log.Error("Only Spot and Point lights are supported.");
+                            Log.Error("Only Spot and Point lights are supported.", nameof(Lights));
                             return;
                         }
 
@@ -260,7 +259,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(Lights));
             }
         }
 
@@ -302,7 +301,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(Lights));
             }
         }
 
@@ -310,7 +309,7 @@ namespace Lumination
         {
             if(lightControls.Count >= 6)
             {
-                log.Error("You have the maximum number of lights.");
+                Log.Error("You have the maximum number of lights.", nameof(Lights));
                 return true;
             }
 
@@ -534,7 +533,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(Lights));
             }
         }
 
@@ -675,7 +674,7 @@ namespace Lumination
                 Atom atom = subSceneAtoms.Where(it => it.uidWithoutSubScenePath == atomUid).FirstOrDefault();
                 if(atom == null)
                 {
-                    log.Error($"Unable to control light atom '{atomUid}': mentioned in saved JSON but not found in subscene.");
+                    Log.Error($"Unable to control light atom '{atomUid}': mentioned in saved JSON but not found in subscene.", nameof(Lights));
                     continue;
                 }
 
@@ -752,7 +751,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(Lights));
             }
         }
 
@@ -785,7 +784,7 @@ namespace Lumination
                 {
                     return;
                 }
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(Lights));
             }
         }
 
@@ -808,7 +807,7 @@ namespace Lumination
                 {
                     return;
                 }
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(Lights));
             }
         }
     }

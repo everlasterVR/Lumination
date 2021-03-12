@@ -7,7 +7,6 @@ namespace Lumination
 {
     internal class Bindings : MonoBehaviour
     {
-        private Log log = new Log(nameof(Bindings));
         private Lights lights;
 
         public Dictionary<string, string> Settings { get; set; }
@@ -57,7 +56,7 @@ namespace Lumination
                 selector.SetActiveTab("Plugins");
                 if(lights.UITransform == null)
                 {
-                    log.Error($"No UI");
+                    Log.Error($"No UI", nameof(Bindings));
                 }
 
                 if(lights.enabled)

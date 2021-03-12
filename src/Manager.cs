@@ -9,7 +9,6 @@ namespace Lumination
     //mostly deprecated code
     internal class Manager : MVRScript
     {
-        private Log log = new Log(nameof(Manager));
         private const string version = "<Version>";
 
         private JSONStorableBool enablePositionParentLink;
@@ -29,7 +28,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(Manager));
             }
         }
 
@@ -223,7 +222,7 @@ namespace Lumination
             bool wasDisabled = SwitchOffIfNotInSubscene(atom);
             if(wasDisabled)
             {
-                log.Message($"New {Const.INVLIGHT} '{atom.uid}' was automatically disabled because '{switchOffOtherLightsLabel}' is checked in plugin UI.");
+                Log.Message($"New {Const.INVLIGHT} '{atom.uid}' was automatically disabled because '{switchOffOtherLightsLabel}' is checked in plugin UI.", nameof(Manager));
             }
         }
 
@@ -243,7 +242,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(Manager));
             }
         }
 
@@ -290,7 +289,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(Manager));
             }
         }
 
@@ -303,7 +302,7 @@ namespace Lumination
             }
             catch(Exception e)
             {
-                log.Error($"{e}");
+                Log.Error($"{e}", nameof(Manager));
             }
         }
     }
