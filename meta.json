@@ -1,22 +1,22 @@
 {
-   "licenseType" : "CC BY-SA", 
-   "creatorName" : "everlaster", 
-   "packageName" : "Lumination", 
-   "standardReferenceVersionOption" : "Latest", 
-   "scriptReferenceVersionOption" : "Exact", 
-   "description" : "v<Version>. Advanced lighting rig control app with a user friendly interface.",
-   "credits" : "Dragontales\nVamTimbo", 
-   "instructions" : "Load to a subscene atom, or load one of the included lighting rig subscenes by Dragontales.", 
-   "promotionalLink" : "https://github.com/everlasterVR/Lumination", 
-   "programVersion" : "1.20.77.9", 
-   "contentList" : [ 
-      "Custom/Scripts/everlaster/Lumination/Lumination.cslist", 
+   "licenseType" : "CC BY-SA",
+   "creatorName" : "everlaster",
+   "packageName" : "Lumination",
+   "standardReferenceVersionOption" : "Latest",
+   "scriptReferenceVersionOption" : "Exact",
+   "description" : "v0.0.0. Advanced lighting rig control app with a user friendly interface.",
+   "credits" : "Dragontales\nVamTimbo",
+   "instructions" : "Load to a subscene atom, or load one of the included lighting rig subscenes by Dragontales.",
+   "promotionalLink" : "https://github.com/everlasterVR/Lumination",
+   "programVersion" : "1.20.77.9",
+   "contentList" : [
+      "Custom/Scripts/everlaster/Lumination/Lumination.cslist",
       "Custom/Scripts/everlaster/Lumination/src",
       "Custom/SubScene/Dragontales/Lumination"
-   ], 
-   "dependencies" : { 
+   ],
+   "dependencies" : {
    },
-   "customOptions" : { 
+   "customOptions" : {
       "preloadMorphs" : "false"
    }
 }

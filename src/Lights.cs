@@ -10,6 +10,8 @@ namespace Lumination
 {
     internal class Lights : MVRScript
     {
+        public const string VERSION = "v0.0.0";
+
         private FreeControllerV3 control;
         private Bindings customBindings;
 

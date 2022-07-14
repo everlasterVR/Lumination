@@ -9,7 +9,7 @@ namespace Lumination
     //mostly deprecated code
     internal class Manager : MVRScript
     {
-        private const string version = "<Version>";
+        private const string version = "v0.0.0";
 
         private JSONStorableBool enablePositionParentLink;
         private string switchOffOtherLightsLabel = "Switch off other point and spot lights";
