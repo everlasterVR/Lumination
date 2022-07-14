@@ -1,5 +1,9 @@
 .vs/
+.vscode/
+.idea/
 bin/
 obj/
-todo.md
 local/
+publish/
+*.fav
+todo.md
