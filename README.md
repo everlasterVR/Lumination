@@ -2,12 +2,10 @@
 
 Advanced lighting rig control app with a user friendly interface.
 
-Releases: https://hub.virtamate.com/resources/lumination.5251/
+**Download**: https://hub.virtamate.com/resources/lumination.5251/
 
-## Contributing
-
-Fork this repository and create a pull request for your changes.
+**Support me at**: https://patreon.com/everlaster
 
 ## License
 
-[MIT](https://github.com/everlasterVR/Lumination/blob/master/LICENSE)
+[MIT](LICENSE)

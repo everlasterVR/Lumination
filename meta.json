@@ -7,7 +7,7 @@
    "description" : "v0.0.0. Advanced lighting rig control app with a user friendly interface.",
    "credits" : "Dragontales\nVamTimbo",
    "instructions" : "Load to a subscene atom, or load one of the included lighting rig subscenes by Dragontales.",
-   "promotionalLink" : "https://github.com/everlasterVR/Lumination",
+   "promotionalLink" : "https://patreon.com/everlaster",
    "programVersion" : "1.20.77.9",
    "contentList" : [
       "Custom/Scripts/everlaster/Lumination/Lumination.cslist",
